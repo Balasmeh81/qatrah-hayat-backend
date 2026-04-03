@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using QatratHayat.Domain.Entities;
 using QatratHayat.Domain.Enums;
 using QatratHayat.Infrastructure.Identity;
 
@@ -13,7 +14,7 @@ namespace QatratHayat.Infrastructure.Persistence
         }
         
         //DBSet here
-
+        public DbSet<NationalRegistry> NationalRegistries { get; set; }= null!;
 
         //Give constrains for Tables in DB 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -50,6 +51,44 @@ namespace QatratHayat.Infrastructure.Persistence
                 new ApplicationRole { Id = 4, Name = UserRole.BranchManager.ToString(), NormalizedName = UserRole.BranchManager.ToString().ToUpper() },
                 new ApplicationRole { Id = 5, Name = UserRole.Admin.ToString(), NormalizedName = UserRole.Admin.ToString().ToUpper() }
             );
+            builder.Entity<NationalRegistry>
+                (
+                    entity =>
+                    {
+                        entity.HasKey(x => x.Id);
+
+                        entity.Property(x => x.NationalId)
+                        .IsRequired()
+                        .HasMaxLength(10);
+
+                        entity.Property(x => x.FullNameAr)
+                        .HasMaxLength(256)
+                        .IsRequired();
+
+                        entity.Property(x => x.FullNameEn)
+                        .HasMaxLength(256)
+                        .IsRequired();
+
+                        entity.Property(x => x.DateOfBirth)
+                            .IsRequired();
+
+                        entity.Property(x => x.Gender)
+                            .HasMaxLength(20)
+                            .IsRequired();
+
+                        entity.Property(x => x.BloodType)
+                            .HasMaxLength(10)
+                            .IsRequired();
+
+                        entity.Property(x => x.IsJordanian)
+                            .IsRequired();
+
+                        entity.HasIndex(x => x.NationalId)
+                            .IsUnique();
+
+                    }
+
+                );
         }
     }
 }

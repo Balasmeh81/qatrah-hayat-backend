@@ -2,9 +2,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using QatratHayat.Application.Accounts.Services;
 using QatratHayat.Application.Common.Interfaces;
 using QatratHayat.Infrastructure.Identity;
 using QatratHayat.Infrastructure.Persistence;
+using QatratHayat.Infrastructure.Services;
 
 namespace QatratHayat.Infrastructure
 {
@@ -33,6 +35,7 @@ namespace QatratHayat.Infrastructure
             .AddDefaultTokenProviders();
 
             services.AddScoped<IJwtTokenService, JwtTokenService>();
+            services.AddScoped<IAccountService, AccountService>();
 
             return services;
         }
