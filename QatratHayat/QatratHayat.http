@@ -1,0 +1,6 @@
+@QatratHayat_HostAddress = http://localhost:5084
+
+GET {{QatratHayat_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

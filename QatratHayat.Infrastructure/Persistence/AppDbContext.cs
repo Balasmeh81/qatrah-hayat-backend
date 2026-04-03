@@ -1,0 +1,55 @@
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using QatratHayat.Domain.Enums;
+using QatratHayat.Infrastructure.Identity;
+
+namespace QatratHayat.Infrastructure.Persistence
+{
+    public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, int>
+    {
+        public AppDbContext(DbContextOptions<AppDbContext> options)
+            : base(options)
+        {
+        }
+        
+        //DBSet here
+
+
+        //Give constrains for Tables in DB 
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+
+            builder.Entity<ApplicationUser>(entity =>
+            {
+                entity.Property(x => x.NationalId)
+                    .HasMaxLength(10)
+                    .IsRequired();
+
+                entity.Property(x => x.FullNameAr)
+                    .HasMaxLength(256)
+                    .IsRequired();
+
+                entity.Property(x => x.FullNameEn)
+                    .HasMaxLength(256)
+                    .IsRequired();
+
+                entity.Property(x => x.DateOfBirth)
+                    .IsRequired();
+
+                entity.Property(x => x.CreatedAt)
+                    .IsRequired();
+
+                entity.HasIndex(x => x.NationalId)
+                    .IsUnique();
+            });
+            builder.Entity<ApplicationRole>().HasData(
+                new ApplicationRole { Id = 1, Name = UserRole.Citizen.ToString(), NormalizedName = UserRole.Citizen.ToString().ToUpper() },
+                new ApplicationRole { Id = 2, Name = UserRole.Doctor.ToString(), NormalizedName = UserRole.Doctor.ToString().ToUpper() },
+                new ApplicationRole { Id = 3, Name = UserRole.Employee.ToString(), NormalizedName = UserRole.Employee.ToString().ToUpper() },
+                new ApplicationRole { Id = 4, Name = UserRole.BranchManager.ToString(), NormalizedName = UserRole.BranchManager.ToString().ToUpper() },
+                new ApplicationRole { Id = 5, Name = UserRole.Admin.ToString(), NormalizedName = UserRole.Admin.ToString().ToUpper() }
+            );
+        }
+    }
+}
