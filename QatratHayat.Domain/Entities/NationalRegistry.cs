@@ -1,4 +1,6 @@
-﻿namespace QatratHayat.Domain.Entities
+﻿using QatratHayat.Domain.Enums;
+
+namespace QatratHayat.Domain.Entities
 {
     
     public class NationalRegistry
@@ -8,8 +10,8 @@
         public string FullNameAr { get; set; } = null!;
         public string  FullNameEn { get; set; }=null!;
         public DateTime DateOfBirth { get; set; }
-        public string Gender { get; set; } = null!;
-        public string BloodType { get; set; }=null!;
+        public Gender Gender { get; set; } 
+        public BloodType BloodType { get; set; }
         public bool IsJordanian { get; set; }
     }
 }

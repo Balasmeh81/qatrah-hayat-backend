@@ -76,6 +76,7 @@ namespace QatratHayat.Infrastructure.Services
                 FullNameAr = request.FullNameAr.Trim(),
                 FullNameEn = request.FullNameEn.Trim(),
                 DateOfBirth = request.DateOfBirth,
+                Gender=request.Gender,
                 PhoneNumber = request.PhoneNumber.Trim(),
                 IsActive = true,
                 IsDeleted = false,
