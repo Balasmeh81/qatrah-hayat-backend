@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using QatratHayat.Application.Accounts.DTOs;
 using QatratHayat.Application.Accounts.Services;
+using QatratHayat.Application.Common.Exceptions;
 using QatratHayat.Application.Common.Interfaces;
 using QatratHayat.Domain.Entities;
 using QatratHayat.Domain.Enums;
@@ -28,66 +29,84 @@ namespace QatratHayat.Infrastructure.Services
             jwtTokenService = _jwtTokenService;
         }
 
+        //User Register
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
         {
-            //1. Confirm Password
-            if (request.Password != request.ConfirmPassword)
-                throw new Exception("Password and Confirm Password do not match.");
+            // Normalize important string inputs first to avoid problems caused by extra spaces.
+            var email = request.Email.Trim();
+            var nationalId = request.NationalId.Trim();
 
-            //2. Check the national registry
+            //1. Check For Password
+            if (request.Password != request.ConfirmPassword)
+                throw new BadRequestException(
+                    "Registration failed.",
+                    new List<string> { "Password and Confirm Password do not match." });
+
+            //2. Check The registryRecord 
             var registryRecord = await context.NationalRegistries
-                .FirstOrDefaultAsync(x => x.NationalId == request.NationalId);
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.NationalId == nationalId);
 
             if (registryRecord is null)
-                throw new Exception("National ID was not found in National Registry.");
+                throw new NotFoundException("National ID was not found in National Registry.");
 
             if (!registryRecord.IsJordanian)
-                throw new Exception("Only Jordanian citizens can register.");
+                throw new BadRequestException("Only Jordanian citizens can register.");
 
-
-            //3.Check if the email is already registered
-            var existingUserByEmail = await userManager.FindByEmailAsync(request.Email);
+            //3. Check If The Email Is Alrady Registed
+            // Using UserManager here is better for email because Identity handles normalized email values.
+            var existingUserByEmail = await userManager.FindByEmailAsync(email);
             if (existingUserByEmail is not null)
-                throw new Exception("Email is already registered.");
+                throw new ConflictException("Email is already registered.");
 
-            //4. check duplicate national ID
+            //4. Check Duplicate NationalId
             var existingUserByNationalId = await context.Users
-                .FirstOrDefaultAsync(x => x.NationalId == request.NationalId);
-            if (existingUserByNationalId is not null)
-                throw new Exception("National ID is already registered.");
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.NationalId == nationalId);
 
+            if (existingUserByNationalId is not null)
+                throw new ConflictException("National ID is already registered.");
 
             //5. Create User
             var user = new ApplicationUser
             {
-                UserName = request.Email,
-                Email = request.Email,
-                NationalId = request.NationalId,
-                FullNameAr = request.FullNameAr,
-                FullNameEn = request.FullNameEn,
+                UserName = email,
+                Email = email,
+                NationalId = nationalId,
+                FullNameAr = request.FullNameAr.Trim(),
+                FullNameEn = request.FullNameEn.Trim(),
                 DateOfBirth = request.DateOfBirth,
-                PhoneNumber = request.PhoneNumber,
+                PhoneNumber = request.PhoneNumber.Trim(),
                 IsActive = true,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow
             };
 
+            // This transaction ensures that user creation, role assignment,
+            // and donor profile creation are treated as one logical unit.
+            using var transaction = await context.Database.BeginTransactionAsync();
 
-            //6. Create an official user and add it on DB.
-            var result = await userManager.CreateAsync(user, request.Password);
+            //6. Create Official User and Insert to DB
+            var createResult = await userManager.CreateAsync(user, request.Password);
 
-            if (!result.Succeeded)
+            if (!createResult.Succeeded)
             {
-                var errors = string.Join(" | ", result.Errors.Select(x => x.Description));
-                throw new Exception(errors);
+                throw new BadRequestException(
+                    "Registration failed.",
+                    createResult.Errors.Select(x => x.Description).ToList());
             }
 
+            //7. Give The User Role
+            var roleResult = await userManager.AddToRoleAsync(user, UserRole.Citizen.ToString());
 
-            //7. Give Role
-            await userManager.AddToRoleAsync(user, UserRole.Citizen.ToString());
+            if (!roleResult.Succeeded)
+            {
+                throw new BadRequestException(
+                    "Failed to assign user role.",
+                    roleResult.Errors.Select(x => x.Description).ToList());
+            }
 
-
-            //8. Create DonorProfile then merge the user to this DonorProfile.
+            //8. Create Donor Profile
             var donorProfile = new DonorProfile
             {
                 UserId = user.Id,
@@ -101,8 +120,9 @@ namespace QatratHayat.Infrastructure.Services
             await context.donorProfiles.AddAsync(donorProfile);
             await context.SaveChangesAsync();
 
+            await transaction.CommitAsync();
 
-            //9. Generate JWT
+            //9. Generate JWT 
             var token = jwtTokenService.GenerateToken(
                 user.Id,
                 user.Email!,
@@ -112,8 +132,7 @@ namespace QatratHayat.Infrastructure.Services
                 null,
                 null);
 
-
-            //10. Return a response object containing the user data and token
+            //10. Returne AuthResponse
             return new AuthResponseDto
             {
                 UserId = user.Id,
@@ -127,33 +146,47 @@ namespace QatratHayat.Infrastructure.Services
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
         {
-            //1.User search
-            var user = await context.Users
-                .FirstOrDefaultAsync(x =>
-                    x.Email == request.EmailOrNationalId ||
-                    x.NationalId == request.EmailOrNationalId);
-            //2. Check if the user is not present
+            var normalizedInput = request.EmailOrNationalId.Trim();
+
+            ApplicationUser? user;
+
+            // If input contains '@', we treat it as email and let Identity resolve it.
+            if (normalizedInput.Contains("@"))
+            {
+                user = await userManager.FindByEmailAsync(normalizedInput);
+            }
+            else
+            {
+                //1. Searech For User
+                user = await context.Users
+                    .FirstOrDefaultAsync(x => x.NationalId == normalizedInput);
+            }
+
+            //2. Check If User Found
             if (user is null)
-                throw new Exception("Invalid email/National ID or password.");
-            //3. Verify that the account is active!?
+                throw new UnauthorizedException("Invalid email/National ID or password.");
+
+            //3. Check User Is Active
             if (!user.IsActive || user.IsDeleted)
-                throw new Exception("This account is inactive.");
+                throw new UnauthorizedException("This account is inactive.");
 
-
-            //4. Checks whether the password entered by the user is correct or not
+            //4. Check password Valid
             var passwordValid = await userManager.CheckPasswordAsync(user, request.Password);
             if (!passwordValid)
-                throw new Exception("Invalid email/National ID or password.");
+                throw new UnauthorizedException("Invalid email/National ID or password.");
 
-
-            //5. Bring the Role
+            //5. Bring The Role
             var roles = await userManager.GetRolesAsync(user);
-            var roleName = roles.FirstOrDefault() ?? UserRole.Citizen.ToString();
+            var roleName = roles.FirstOrDefault();
 
-            //6. Convert text to Enum
-            Enum.TryParse<UserRole>(roleName, out var parsedRole);
+            if (string.IsNullOrWhiteSpace(roleName))
+                throw new BadRequestException("User role is not assigned.");
 
-            //7. Creating a JWT Token
+            //6. Convert Role To String
+            if (!Enum.TryParse<UserRole>(roleName, out var parsedRole))
+                throw new BadRequestException("User role is invalid.");
+
+            //7. Generate JWT 
             var token = jwtTokenService.GenerateToken(
                 user.Id,
                 user.Email!,
@@ -163,8 +196,7 @@ namespace QatratHayat.Infrastructure.Services
                 user.BranchId,
                 user.HospitalId);
 
-
-            // 8) Return a response object containing the user data and token
+            //8. Returne AuthResponse
             return new AuthResponseDto
             {
                 UserId = user.Id,
@@ -178,29 +210,31 @@ namespace QatratHayat.Infrastructure.Services
 
         public async Task<CurrentUserDto> GetCurrentUserAsync(ClaimsPrincipal userPrincipal)
         {
-            // 1) Read userId from token claims
-            var userIdClaim = userPrincipal.FindFirst("userId")?.Value;
+            //1. Read User Id From Token Claims
+            var userIdClaim = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrWhiteSpace(userIdClaim))
-                throw new Exception("User ID claim was not found in token.");
+                throw new UnauthorizedException("User ID claim was not found in token.");
 
             if (!int.TryParse(userIdClaim, out int userId))
-                throw new Exception("Invalid user ID in token.");
+                throw new UnauthorizedException("Invalid user ID in token.");
 
-            // 2) Get user from database
-            var user = await context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            //2. Get User From DB
+            var user = await context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == userId);
 
             if (user is null)
-                throw new Exception("User not found.");
+                throw new NotFoundException("User not found.");
 
             if (!user.IsActive || user.IsDeleted)
-                throw new Exception("This account is inactive.");
+                throw new UnauthorizedException("This account is inactive.");
 
-            // 3) Get user role
+            //3. Get User Role
             var roles = await userManager.GetRolesAsync(user);
             var roleName = roles.FirstOrDefault() ?? UserRole.Citizen.ToString();
 
-            // 4) Return current user data
+            //4. Return CurrentUser Date
             return new CurrentUserDto
             {
                 UserId = user.Id,
