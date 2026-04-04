@@ -3,9 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using QatratHayat.Application.Accounts.DTOs;
 using QatratHayat.Application.Accounts.Services;
 using QatratHayat.Application.Common.Interfaces;
+using QatratHayat.Domain.Entities;
 using QatratHayat.Domain.Enums;
 using QatratHayat.Infrastructure.Identity;
 using QatratHayat.Infrastructure.Persistence;
+using System.Security.Claims;
 
 namespace QatratHayat.Infrastructure.Services
 {
@@ -85,7 +87,22 @@ namespace QatratHayat.Infrastructure.Services
             await userManager.AddToRoleAsync(user, UserRole.Citizen.ToString());
 
 
-            //8. Generate JWT
+            //8. Create DonorProfile then merge the user to this DonorProfile.
+            var donorProfile = new DonorProfile
+            {
+                UserId = user.Id,
+                BloodType = request.BloodType,
+                BloodTypeStatus = BloodTypeStatus.Provisional,
+                EligibilityStatus = EligibilityStatus.Eligible,
+                DonationCount = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await context.donorProfiles.AddAsync(donorProfile);
+            await context.SaveChangesAsync();
+
+
+            //9. Generate JWT
             var token = jwtTokenService.GenerateToken(
                 user.Id,
                 user.Email!,
@@ -94,7 +111,9 @@ namespace QatratHayat.Infrastructure.Services
                 UserRole.Citizen,
                 null,
                 null);
-            //9. Return a response object containing the user data and token
+
+
+            //10. Return a response object containing the user data and token
             return new AuthResponseDto
             {
                 UserId = user.Id,
@@ -154,6 +173,41 @@ namespace QatratHayat.Infrastructure.Services
                 FullNameEn = user.FullNameEn,
                 Role = roleName,
                 Token = token
+            };
+        }
+
+        public async Task<CurrentUserDto> GetCurrentUserAsync(ClaimsPrincipal userPrincipal)
+        {
+            // 1) Read userId from token claims
+            var userIdClaim = userPrincipal.FindFirst("userId")?.Value;
+
+            if (string.IsNullOrWhiteSpace(userIdClaim))
+                throw new Exception("User ID claim was not found in token.");
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                throw new Exception("Invalid user ID in token.");
+
+            // 2) Get user from database
+            var user = await context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+
+            if (user is null)
+                throw new Exception("User not found.");
+
+            if (!user.IsActive || user.IsDeleted)
+                throw new Exception("This account is inactive.");
+
+            // 3) Get user role
+            var roles = await userManager.GetRolesAsync(user);
+            var roleName = roles.FirstOrDefault() ?? UserRole.Citizen.ToString();
+
+            // 4) Return current user data
+            return new CurrentUserDto
+            {
+                UserId = user.Id,
+                Email = user.Email!,
+                FullNameAr = user.FullNameAr,
+                FullNameEn = user.FullNameEn,
+                Role = roleName
             };
         }
     }

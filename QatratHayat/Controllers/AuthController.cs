@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using QatratHayat.Application.Accounts.DTOs;
 using QatratHayat.Application.Accounts.Services;
-
+using Microsoft.AspNetCore.Authorization;
 namespace QatratHayat.API.Controllers
 {
     [ApiController]
@@ -29,6 +29,15 @@ namespace QatratHayat.API.Controllers
         public async Task<IActionResult> Login(LoginRequestDto request)
         {
             var result = await accountService.LoginAsync(request);
+            return Ok(result);
+        }
+
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            var result = await accountService.GetCurrentUserAsync(User);
             return Ok(result);
         }
     }
