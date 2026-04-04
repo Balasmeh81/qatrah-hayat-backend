@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using QatratHayat.Domain.Enums;
 
 namespace QatratHayat.Infrastructure.Identity
 {
@@ -8,6 +9,7 @@ namespace QatratHayat.Infrastructure.Identity
         public string FullNameAr { get; set; } = null!;
         public string FullNameEn { get; set; } = null!;
         public DateTime DateOfBirth { get; set; }
+        public Gender  Gender { get; set; }
         public int? BranchId { get; set; }
         public int? HospitalId { get; set; }
         public bool IsActive { get; set; } = true;

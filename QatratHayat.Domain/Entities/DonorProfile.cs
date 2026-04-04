@@ -8,7 +8,7 @@ namespace QatratHayat.Domain.Entities
 
         public int UserId { get; set; }
 
-        public string? BloodType { get; set; }
+        public BloodType BloodType { get; set; }
 
         public BloodTypeStatus BloodTypeStatus { get; set; } = BloodTypeStatus.Provisional;
 

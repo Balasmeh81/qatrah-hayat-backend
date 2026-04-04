@@ -16,6 +16,12 @@ namespace QatratHayat.Infrastructure.Persistence
         //DBSet here
         public DbSet<NationalRegistry> NationalRegistries { get; set; }= null!;
         public DbSet<DonorProfile> donorProfiles { get; set; } = null!;
+        public DbSet<Branch> Branches { get; set; } = null!;
+        public DbSet<Hospital> Hospitals { get; set; } = null!;
+        public DbSet<Beneficiary>BloodRequesters  { get; set; } = null!;
+        public DbSet<Campaign> Campaigns { get; set; } = null!;
+        public DbSet<CampaignTargetBloodType> CampaignTargetBloodTypes { get; set; } = null!;
+
 
         //Give constrains for Tables in DB 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -38,6 +44,8 @@ namespace QatratHayat.Infrastructure.Persistence
 
                 entity.Property(x => x.DateOfBirth)
                     .IsRequired();
+                entity.Property(x=>x.Gender)
+                .IsRequired();
 
                 entity.Property(x => x.CreatedAt)
                     .IsRequired();

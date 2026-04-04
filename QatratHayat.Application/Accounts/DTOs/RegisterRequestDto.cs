@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using QatratHayat.Domain.Enums;
+using System.ComponentModel.DataAnnotations;
 namespace QatratHayat.Application.Accounts.DTOs
 {
     //This Class represents data coming from user SignUp.
@@ -13,10 +14,12 @@ namespace QatratHayat.Application.Accounts.DTOs
         public string FullNameEn { get; set; } = null!;
         [Required]
         public DateTime DateOfBirth { get; set; }
-
-        public string? BloodType { get; set; }
-        public string? Gender { get; set; }
-        public string? MaritalStatus { get; set; }
+        [Required]
+        public BloodType BloodType { get; set; }
+        [Required]
+        public Gender Gender { get; set; }
+        [Required]
+        public MaritalStatus MaritalStatus { get; set; }
         [Required]
         [EmailAddress]
         public string Email { get; set; } = null!;
