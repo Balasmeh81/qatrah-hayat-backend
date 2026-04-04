@@ -15,6 +15,7 @@ namespace QatratHayat.Infrastructure.Persistence
         
         //DBSet here
         public DbSet<NationalRegistry> NationalRegistries { get; set; }= null!;
+        public DbSet<DonorProfile> donorProfiles { get; set; } = null!;
 
         //Give constrains for Tables in DB 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -89,6 +90,36 @@ namespace QatratHayat.Infrastructure.Persistence
                     }
 
                 );
+            builder.Entity<DonorProfile>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.UserId)
+                    .IsRequired();
+
+                entity.Property(x => x.BloodType)
+                    .HasMaxLength(10);
+
+                entity.Property(x => x.BloodTypeStatus)
+                    .IsRequired();
+
+                entity.Property(x => x.EligibilityStatus)
+                    .IsRequired();
+
+                entity.Property(x => x.PermanentDeferralReason)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.CreatedAt)
+                    .IsRequired();
+
+                entity.HasIndex(x => x.UserId)
+                    .IsUnique();
+
+                entity.HasOne<ApplicationUser>()
+                    .WithOne()
+                    .HasForeignKey<DonorProfile>(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }
