@@ -4,25 +4,29 @@ namespace QatratHayat.Domain.Entities
 {
     public class Beneficiary
     {
-        [Key]
+        
         public int Id { get; set; }
-
         [Required]
-        [MaxLength(20)]
+        [StringLength(10, MinimumLength = 10)]
+        [RegularExpression(@"^\d{10}$", ErrorMessage = "National ID must be exactly 10 digits.")]
         public string NationalId { get; set; } = null!;
-
         [Required]
-        [MaxLength(200)]
-        public string FullName { get; set; } = null!;
-
-        public int? UserId { get; set; }
-
-        public bool IsTemporary { get; set; } = true;
-
-        public int? MergedIntoUserId { get; set; }
+        [MaxLength(256)]
+        public string FullNameAr { get; set; } = null!;
+        [Required]
+        [MaxLength(256)]
+        public string FullNameEn { get; set; } = null!;        
+        [Required]
+        public bool IsTemporary { get; set; }
+        [Required]
+        public DateTime CreatedAt { get; set; }
 
         public DateTime? MergedAt { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        // Navigation Property
+        public int? UserId { get; set; }
+        public int? MergedIntoUserId { get; set; }
+
+        public ICollection<BloodRequest> BloodRequests { get; set; } = new List<BloodRequest>();
     }
 }

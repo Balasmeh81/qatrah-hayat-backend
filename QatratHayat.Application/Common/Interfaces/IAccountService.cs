@@ -2,7 +2,7 @@
 using System.Security.Claims;
 
 
-namespace QatratHayat.Application.Accounts.Services
+namespace QatratHayat.Application.Common.Interfaces
 {
     public interface IAccountService
     {
