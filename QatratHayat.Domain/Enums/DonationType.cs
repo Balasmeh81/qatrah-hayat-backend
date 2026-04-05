@@ -1,6 +1,4 @@
-﻿
-
-namespace QatratHayat.Domain.Enums
+﻿namespace QatratHayat.Domain.Enums
 {
     public enum DonationType
     {

@@ -1,31 +1,36 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QatratHayat.Domain.Entities
 {
     public class Hospital
     {
-        [Key]
         public int Id { get; set; }
-
         [Required]
-        [MaxLength(200)]
-        public string Name { get; set; } = null!;
-
+        [MaxLength(256)]
+        public string HospitalNameAr { get; set; } = null!;
+        [Required]
+        [MaxLength(256)]
+        public string HospitalNameEn { get; set; } = null!;
         [Required]
         [MaxLength(500)]
-        public string Address { get; set; } = null!;
+        public string AddressAR { get; set; } = null!;
+        [Required]
+        [MaxLength(500)]
+        public string AddressEn { get; set; } = null!;
+        [Required]
+        public bool IsActive { get; set; }
+        [Required]
+        public bool IsDeleted { get; set; }
+        [Required]
+        public DateTime CreatedAt { get; set; } 
 
+        public DateTime? UpdatedAt { get; set; }
+
+        // Navigation Property
         [Required]
         public int BranchId { get; set; }
+        public Branch Branch { get; set; }= null!;
 
-        [ForeignKey(nameof(BranchId))]
-        public Branch Branch { get; set; } = null!;
-
-        public bool IsActive { get; set; } = true;
-        public bool IsDeleted { get; set; } = false;
-
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? UpdatedAt { get; set; }
+        public ICollection<BloodRequest> BloodRequests { get; set; } = new List<BloodRequest>();
     }
 }

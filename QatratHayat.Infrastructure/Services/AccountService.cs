@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using QatratHayat.Application.Accounts.DTOs;
-using QatratHayat.Application.Accounts.Services;
 using QatratHayat.Application.Common.Exceptions;
 using QatratHayat.Application.Common.Interfaces;
 using QatratHayat.Domain.Entities;
@@ -118,7 +117,7 @@ namespace QatratHayat.Infrastructure.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            await context.donorProfiles.AddAsync(donorProfile);
+            await context.DonorProfiles.AddAsync(donorProfile);
             await context.SaveChangesAsync();
 
             await transaction.CommitAsync();
@@ -150,7 +149,7 @@ namespace QatratHayat.Infrastructure.Services
             var normalizedInput = request.EmailOrNationalId.Trim();
 
             ApplicationUser? user;
-
+            //1. Searech For User
             // If input contains '@', we treat it as email and let Identity resolve it.
             if (normalizedInput.Contains("@"))
             {
@@ -158,7 +157,7 @@ namespace QatratHayat.Infrastructure.Services
             }
             else
             {
-                //1. Searech For User
+                
                 user = await context.Users
                     .FirstOrDefaultAsync(x => x.NationalId == normalizedInput);
             }
