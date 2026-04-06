@@ -15,6 +15,10 @@ namespace QatratHayat.Domain.Entities
         [Required]
         public int DonationCount { get; set; }
         [Required]
+        public bool iAgree { get; set; }
+        [Required]
+        public bool iConfirm { get; set; }
+        [Required]
         public DateTime CreatedAt { get; set; }
 
         [MaxLength(500)]

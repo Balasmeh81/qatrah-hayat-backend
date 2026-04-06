@@ -114,7 +114,9 @@ namespace QatratHayat.Infrastructure.Services
                 BloodTypeStatus = BloodTypeStatus.Provisional,
                 EligibilityStatus = EligibilityStatus.Eligible,
                 DonationCount = 0,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                iAgree= request.iAgree,
+                iConfirm= request.iConfirm,
             };
 
             await context.DonorProfiles.AddAsync(donorProfile);
