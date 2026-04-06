@@ -26,15 +26,21 @@ namespace QatratHayat.Application.Accounts.DTOs
         public string Email { get; set; } = null!;
         [Required]
         [Phone]
-        [RegularExpression(@"^(\+962|0)?7[789]\d{7}$", ErrorMessage = "Invalid Jordanian phone number.")]
+        [MaxLength(10)]
         public string PhoneNumber { get; set; } = null!;
-        public string? JobTitle { get; set; }
-        public string? Address { get; set; }
         [Required]
         [MinLength(8)]
         public string Password { get; set; } = null!;
         [Required]
         [Compare(nameof(Password))]
         public string ConfirmPassword { get; set; } = null!;
+
+        [Required]
+        public bool iAgree { get; set; }=false;
+        [Required]
+        public bool iConfirm { get; set; } = false;
+
+        public string? JobTitle { get; set; }
+        public string? Address { get; set; }
     }
 }

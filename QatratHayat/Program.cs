@@ -8,6 +8,17 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 // Register MVC controllers support.
 builder.Services.AddControllers();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularDevClient", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 // Register minimal API explorer so Swagger can discover endpoints.
 builder.Services.AddEndpointsApiExplorer();
 // Configure Swagger/OpenAPI document and JWT authorization support inside Swagger UI.
@@ -93,7 +104,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseCors("AllowAngularDevClient");
 app.UseAuthentication();
 app.UseAuthorization();
 
