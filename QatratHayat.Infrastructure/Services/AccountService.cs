@@ -51,20 +51,21 @@ namespace QatratHayat.Infrastructure.Services
 
             if (!registryRecord.IsJordanian)
                 throw new BadRequestException("Only Jordanian citizens can register.");
-
-            //3. Check If The Email Is Alrady Registed
-            // Using UserManager here is better for email because Identity handles normalized email values.
-            var existingUserByEmail = await userManager.FindByEmailAsync(email);
-            if (existingUserByEmail is not null)
-                throw new ConflictException("Email is already registered.");
-
-            //4. Check Duplicate NationalId
+            //3. Check Duplicate NationalId
             var existingUserByNationalId = await context.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.NationalId == nationalId);
 
             if (existingUserByNationalId is not null)
                 throw new ConflictException("National ID is already registered.");
+
+            //4. Check If The Email Is Alrady Registed
+            // Using UserManager here is better for email because Identity handles normalized email values.
+            var existingUserByEmail = await userManager.FindByEmailAsync(email);
+            if (existingUserByEmail is not null)
+                throw new ConflictException("Email is already registered.");
+
+         
 
             //5. Create User
             var user = new ApplicationUser
@@ -77,6 +78,9 @@ namespace QatratHayat.Infrastructure.Services
                 DateOfBirth = request.DateOfBirth,
                 Gender=request.Gender,
                 PhoneNumber = request.PhoneNumber.Trim(),
+                Address = request.Address,
+                JobTitle = request.JobTitle,
+                MaritalStatus = request.MaritalStatus,
                 IsActive = true,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow
@@ -148,21 +152,16 @@ namespace QatratHayat.Infrastructure.Services
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
         {
-            var normalizedInput = request.EmailOrNationalId.Trim();
+            var normalizedInput = request.NationalId.Trim();
 
             ApplicationUser? user;
             //1. Searech For User
             // If input contains '@', we treat it as email and let Identity resolve it.
-            if (normalizedInput.Contains("@"))
-            {
-                user = await userManager.FindByEmailAsync(normalizedInput);
-            }
-            else
-            {
-                
+          
+          
                 user = await context.Users
                     .FirstOrDefaultAsync(x => x.NationalId == normalizedInput);
-            }
+           
 
             //2. Check If User Found
             if (user is null)
