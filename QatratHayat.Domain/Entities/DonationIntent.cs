@@ -27,6 +27,7 @@ namespace QatratHayat.Domain.Entities
         public BloodRequest? BloodRequest { get; set; }
 
         public ICollection<ScreeningAnswer> ScreeningAnswers { get; set; } = new List<ScreeningAnswer>();
+        public ICollection<ScreeningSession> ScreeningSessions { get; set; } = new List<ScreeningSession>();
 
     }
 }

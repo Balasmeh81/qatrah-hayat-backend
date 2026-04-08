@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QatratHayat.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using QatratHayat.Infrastructure.Persistence;
 namespace QatratHayat.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260408031009_addIsProfileCompleted")]
+    partial class addIsProfileCompleted
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1051,15 +1054,15 @@ namespace QatratHayat.Infrastructure.Migrations
                         new
                         {
                             Id = 2,
-                            AdditionalTextLabelAr = "",
-                            AdditionalTextLabelEn = "",
+                            AdditionalTextLabelAr = "اذكر ما حدث",
+                            AdditionalTextLabelEn = "Please specify what happened",
                             CreatedAt = new DateTime(2026, 4, 8, 0, 0, 0, 0, DateTimeKind.Utc),
                             DecisionMode = 3,
                             DeferralType = 3,
                             DisplayOrder = 2,
                             IsActive = true,
                             IsForFemaleOnly = false,
-                            RequiresAdditionalText = false,
+                            RequiresAdditionalText = true,
                             RequiresDateValue = false,
                             SessionType = 1,
                             TextAr = "هل حدثت لك ردود فعل نتيجة التبرع مثل الدوخة أو الإغماء أو غيرها؟",
@@ -1085,15 +1088,15 @@ namespace QatratHayat.Infrastructure.Migrations
                         new
                         {
                             Id = 4,
-                            AdditionalTextLabelAr = "",
-                            AdditionalTextLabelEn = "",
+                            AdditionalTextLabelAr = "اذكر اسم المرض",
+                            AdditionalTextLabelEn = "Please specify the condition",
                             CreatedAt = new DateTime(2026, 4, 8, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DecisionMode = 2,
-                            DeferralType = 2,
+                            DecisionMode = 3,
+                            DeferralType = 3,
                             DisplayOrder = 4,
                             IsActive = true,
                             IsForFemaleOnly = false,
-                            RequiresAdditionalText = false,
+                            RequiresAdditionalText = true,
                             RequiresDateValue = false,
                             SessionType = 1,
                             TextAr = "هل أنت مصاب بأمراض نزف الدم أو أي نقص خلقي في أحد عوامل التخثر مثل الهيموفيليا أو غيرها؟",

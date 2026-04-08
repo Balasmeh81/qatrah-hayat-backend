@@ -11,10 +11,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Donations\" />
-    <Folder Include="Donors\" />
-    <Folder Include="BloodRequests\" />
-    <Folder Include="Inventory\" />
+    <Folder Include="Common\Interfaces\" />
+    <Folder Include="Features\Donations\" />
+    <Folder Include="Features\Donors\" />
+    <Folder Include="Features\BloodRequests\" />
+    <Folder Include="Features\Inventory\" />
   </ItemGroup>
 
   <ItemGroup>

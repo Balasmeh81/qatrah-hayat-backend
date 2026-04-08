@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Azure.Core;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using QatratHayat.Application.Accounts.DTOs;
 using QatratHayat.Application.Common.Exceptions;
-using QatratHayat.Application.Common.Interfaces;
+using QatratHayat.Application.Features.Accounts.DTOs;
+using QatratHayat.Application.Features.Auth.Interfaces;
 using QatratHayat.Domain.Entities;
 using QatratHayat.Domain.Enums;
 using QatratHayat.Infrastructure.Identity;
@@ -83,6 +84,7 @@ namespace QatratHayat.Infrastructure.Services
                 MaritalStatus = request.MaritalStatus,
                 IsActive = true,
                 IsDeleted = false,
+                IsProfileCompleted = false,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -145,9 +147,26 @@ namespace QatratHayat.Infrastructure.Services
                 Email = user.Email!,
                 FullNameAr = user.FullNameAr,
                 FullNameEn = user.FullNameEn,
-                Role = UserRole.Citizen.ToString(),
+                Role = UserRole.Citizen,
+                DateOfBirth = user.DateOfBirth,
+                BloodType= request.BloodType,
+                Gender= request.Gender,
                 Token = token
             };
+        }
+        public async Task<ApplicationUser?> GetUserAsync(string nationalId) {
+
+            var normalizedInput = nationalId.Trim();
+            ApplicationUser? user;
+            //1. Searech For User
+            user = await context.Users
+                    .FirstOrDefaultAsync(x => x.NationalId == normalizedInput);
+            //2. Check If User Found
+            if (user is null)
+                return null;
+
+            return user;
+
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
@@ -155,17 +174,11 @@ namespace QatratHayat.Infrastructure.Services
             var normalizedInput = request.NationalId.Trim();
 
             ApplicationUser? user;
-            //1. Searech For User
-            // If input contains '@', we treat it as email and let Identity resolve it.
-          
-          
-                user = await context.Users
-                    .FirstOrDefaultAsync(x => x.NationalId == normalizedInput);
-           
-
-            //2. Check If User Found
+            // 1. Get User
+            user = await GetUserAsync(request.NationalId);
+            // 2.Check User
             if (user is null)
-                throw new UnauthorizedException("Invalid email/National ID or password.");
+            throw new UnauthorizedException("Invalid email/National ID or password.");
 
             //3. Check User Is Active
             if (!user.IsActive || user.IsDeleted)
@@ -186,8 +199,14 @@ namespace QatratHayat.Infrastructure.Services
             //6. Convert Role To String
             if (!Enum.TryParse<UserRole>(roleName, out var parsedRole))
                 throw new BadRequestException("User role is invalid.");
+            //7. Bring The bloodType
+            BloodType bloodType = await context.DonorProfiles
+                    .Where(x => x.UserId == user.Id)
+                    .Select(x => x.BloodType)
+                    .FirstOrDefaultAsync();
 
-            //7. Generate JWT 
+
+            //8. Generate JWT 
             var token = jwtTokenService.GenerateToken(
                 user.Id,
                 user.Email!,
@@ -197,14 +216,18 @@ namespace QatratHayat.Infrastructure.Services
                 user.BranchId,
                 user.HospitalId);
 
-            //8. Returne AuthResponse
+            //9. Returne AuthResponse
             return new AuthResponseDto
             {
                 UserId = user.Id,
                 Email = user.Email!,
                 FullNameAr = user.FullNameAr,
                 FullNameEn = user.FullNameEn,
-                Role = roleName,
+                Role = UserRole.Citizen,
+                DateOfBirth = user.DateOfBirth,
+                BloodType = bloodType,
+                Gender = user.Gender,
+                IsProfileCompleted = user.IsProfileCompleted,
                 Token = token
             };
         }

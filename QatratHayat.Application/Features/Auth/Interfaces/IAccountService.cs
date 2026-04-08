@@ -1,8 +1,8 @@
-﻿using QatratHayat.Application.Accounts.DTOs;
+﻿using QatratHayat.Application.Features.Accounts.DTOs;
 using System.Security.Claims;
 
 
-namespace QatratHayat.Application.Common.Interfaces
+namespace QatratHayat.Application.Features.Auth.Interfaces
 {
     public interface IAccountService
     {

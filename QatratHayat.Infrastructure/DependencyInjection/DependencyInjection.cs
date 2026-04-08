@@ -2,7 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using QatratHayat.Application.Common.Interfaces;
+using QatratHayat.Application.Features.Auth.Interfaces;
+using QatratHayat.Application.Features.ScreeningQuestions.Interfaces;
 using QatratHayat.Infrastructure.Identity;
 using QatratHayat.Infrastructure.Persistence;
 using QatratHayat.Infrastructure.Services;
@@ -36,6 +37,7 @@ namespace QatratHayat.Infrastructure
             services.AddScoped<IJwtTokenService, JwtTokenService>();
             services.AddScoped<IAccountService, AccountService>();
             services.AddScoped<ICivilStatusService, CivilStatusService>();
+            services.AddScoped<IScreeningSessionService, ScreeningSessionService>();
             return services;
         }
     }

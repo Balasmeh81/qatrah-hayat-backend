@@ -1,6 +1,6 @@
 ﻿using QatratHayat.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
-namespace QatratHayat.Application.Accounts.DTOs
+namespace QatratHayat.Application.Features.Accounts.DTOs
 {
     //This Class represents data coming from user SignUp.
     public class RegisterRequestDto

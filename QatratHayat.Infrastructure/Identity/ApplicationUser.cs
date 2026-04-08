@@ -29,6 +29,8 @@ namespace QatratHayat.Infrastructure.Identity
         public bool IsDeleted { get; set; }
         [Required]
         public DateTime CreatedAt { get; set; }
+        [Required]
+        public bool IsProfileCompleted { get; set; }
 
         public string? JobTitle { get; set; }
         public string? Address { get; set; }
@@ -49,5 +51,6 @@ namespace QatratHayat.Infrastructure.Identity
         public ICollection<Campaign> CreatedCampaigns { get; set; } = new List<Campaign>();
         public ICollection<ScreeningAnswer> ScreeningAnswers { get; set; } = new List<ScreeningAnswer>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+        public ICollection<ScreeningSession> ScreeningSessions { get; set; } = new List<ScreeningSession>();
     }
 }

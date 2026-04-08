@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace QatratHayat.Application.Accounts.DTOs
+namespace QatratHayat.Application.Features.Accounts.DTOs
 {
     public class LoginRequestDto
     {
