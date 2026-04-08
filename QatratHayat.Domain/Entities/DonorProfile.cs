@@ -38,5 +38,6 @@ namespace QatratHayat.Domain.Entities
         public ICollection<ScreeningAnswer> ScreeningAnswers { get; set; } = new List<ScreeningAnswer>();
         public ICollection<Donation> Donations { get; set; } = new List<Donation>();
         public ICollection<DonationIntent> DonationIntents { get; set; } = new List<DonationIntent>();
+        public ICollection<ScreeningSession> ScreeningSessions { get; set; } = new List<ScreeningSession>();
     }
 }

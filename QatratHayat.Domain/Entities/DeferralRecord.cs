@@ -29,6 +29,9 @@ namespace QatratHayat.Domain.Entities
         public int? ScreeningQuestionId { get; set; }
         public ScreeningQuestion? ScreeningQuestion { get; set; }
 
+        public int? ScreeningSessionId { get; set; }
+        public ScreeningSession? ScreeningSession { get; set; }
+
         public int? DecidedByUserId { get; set; }
 
 

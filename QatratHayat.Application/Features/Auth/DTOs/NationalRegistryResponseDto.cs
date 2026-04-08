@@ -1,5 +1,5 @@
 ﻿using QatratHayat.Domain.Enums;
-namespace QatratHayat.Application.Accounts.DTOs
+namespace QatratHayat.Application.Features.Accounts.DTOs
 {
     public class NationalRegistryResponseDto
     {

@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using QatratHayat.Application.Accounts.DTOs;
 using QatratHayat.Application.Common.Exceptions;
-using QatratHayat.Application.Common.Interfaces;
+using QatratHayat.Application.Features.Accounts.DTOs;
+using QatratHayat.Application.Features.Auth.Interfaces;
 using QatratHayat.Infrastructure.Persistence;
 
 namespace QatratHayat.Infrastructure.Services

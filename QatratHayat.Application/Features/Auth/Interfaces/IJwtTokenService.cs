@@ -1,6 +1,6 @@
 ﻿using QatratHayat.Domain.Enums;
 
-namespace QatratHayat.Application.Common.Interfaces
+namespace QatratHayat.Application.Features.Auth.Interfaces
 {
     public interface IJwtTokenService
     {

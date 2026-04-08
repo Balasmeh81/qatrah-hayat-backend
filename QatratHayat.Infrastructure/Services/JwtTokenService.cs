@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using QatratHayat.Application.Common.Interfaces;
+using QatratHayat.Application.Features.Auth.Interfaces;
 using QatratHayat.Domain.Enums;
 
 namespace QatratHayat.Infrastructure.Identity

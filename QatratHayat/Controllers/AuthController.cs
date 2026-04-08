@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using QatratHayat.Application.Accounts.DTOs;
-using QatratHayat.Application.Common.Interfaces;
+using QatratHayat.Application.Features.Accounts.DTOs;
+using QatratHayat.Application.Features.Auth.Interfaces;
 
 namespace QatratHayat.API.Controllers
 {
