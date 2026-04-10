@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QatratHayat.Application.Features.ScreeningQuestions.DTOs
 {
-    public class SubmitedScreeningQuestionsRequestDTO
+    public class SubmittedScreeningQuestionsRequestDTO
     {
         [Required]
         public ScreeningSessionType SessionType { get; set; }

@@ -5,9 +5,9 @@ namespace QatratHayat.Application.Features.ScreeningQuestions.Interfaces
 {
     public interface IScreeningSessionService
     {
-        Task<SubmitedScreeningResponseDTO> SubmitScreeningQuestionsAsync(
+        Task<SubmittedScreeningResponseDTO> SubmitScreeningQuestionsAsync(
             int userId,
-            SubmitedScreeningQuestionsRequestDTO request);
+            SubmittedScreeningQuestionsRequestDTO request);
 
         Task<List<GetScreeningQuestionsResponseDTO>> GetScreeningQuestionsAsync(
             ScreeningSessionType sessionType, bool isForFemaleOnly);

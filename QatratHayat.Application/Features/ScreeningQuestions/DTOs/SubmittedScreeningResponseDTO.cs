@@ -2,7 +2,7 @@
 
 namespace QatratHayat.Application.Features.ScreeningQuestions.DTOs
 {
-    public class SubmitedScreeningResponseDTO
+    public class SubmittedScreeningResponseDTO
     {
         public int ScreeningSessionId { get; set; }
         public ScreeningSessionType SessionType { get; set; }

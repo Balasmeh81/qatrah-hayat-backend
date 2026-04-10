@@ -28,7 +28,7 @@ namespace QatratHayat.API.Controllers
         }
         [Authorize]
         [HttpPost("submit")]
-        public async Task<ActionResult<SubmitedScreeningResponseDTO>> Submit( SubmitedScreeningQuestionsRequestDTO request)
+        public async Task<ActionResult<SubmittedScreeningResponseDTO>> Submit( SubmittedScreeningQuestionsRequestDTO request)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
