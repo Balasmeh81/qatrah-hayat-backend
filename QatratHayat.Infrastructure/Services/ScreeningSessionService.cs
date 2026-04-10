@@ -17,7 +17,7 @@ namespace QatratHayat.Infrastructure.Services
             _context = context;
         }
 
-        public async Task<SubmitedScreeningResponseDTO> SubmitScreeningQuestionsAsync(int userId, SubmitedScreeningQuestionsRequestDTO request)
+        public async Task<SubmittedScreeningResponseDTO> SubmitScreeningQuestionsAsync(int userId, SubmittedScreeningQuestionsRequestDTO request)
         {
             // 1.Get User
             var user = await _context.Users
@@ -42,9 +42,9 @@ namespace QatratHayat.Infrastructure.Services
         }
 
         // Handle Registration Questions
-        private async Task<SubmitedScreeningResponseDTO> HandleRegistrationAsync(
+        private async Task<SubmittedScreeningResponseDTO> HandleRegistrationAsync(
             Identity.ApplicationUser user,
-            SubmitedScreeningQuestionsRequestDTO request)
+            SubmittedScreeningQuestionsRequestDTO request)
         {
             // 1. Check if Screening Questions Request For Registration
             if (request.DonationIntentId.HasValue)
@@ -67,8 +67,8 @@ namespace QatratHayat.Infrastructure.Services
             {
                 SessionType = ScreeningSessionType.Registration,
                 UserId = user.Id,
-                DonorProfileId = null,
-                DonationIntentId = null,
+                DonorProfileId = user.DonorProfile?.Id ?? null,
+                DonationIntentId = request.DonationIntentId ?? null,
                 ResultEligibilityStatus = EligibilityStatus.Eligible,
                 CreatedAt = DateTime.UtcNow,
                 CompletedAt = DateTime.UtcNow
@@ -86,8 +86,8 @@ namespace QatratHayat.Infrastructure.Services
                 AdditionalText = string.IsNullOrWhiteSpace(a.AdditionalText) ? null : a.AdditionalText.Trim(),
                 UserId = user.Id,
                 ScreeningSessionId = session.Id,
-                DonationIntentId = null,
-                DonorProfileId = null,
+                DonationIntentId = request.DonationIntentId ?? null,
+                DonorProfileId = user.DonorProfile?.Id ?? null,
                 ScreeningQuestionId = a.ScreeningQuestionId
             }).ToList();
 
@@ -100,7 +100,7 @@ namespace QatratHayat.Infrastructure.Services
             await _context.SaveChangesAsync();
 
             // 9. Return Screening Response
-            return new SubmitedScreeningResponseDTO
+            return new SubmittedScreeningResponseDTO
             {
                 ScreeningSessionId = session.Id,
                 SessionType = session.SessionType,
@@ -111,9 +111,9 @@ namespace QatratHayat.Infrastructure.Services
             };
         }
 
-        private async Task<SubmitedScreeningResponseDTO> HandlePreDonationAsync(
+        private async Task<SubmittedScreeningResponseDTO> HandlePreDonationAsync(
             Identity.ApplicationUser user,
-            SubmitedScreeningQuestionsRequestDTO request)
+            SubmittedScreeningQuestionsRequestDTO request)
         {
             // 1. Check if Screening Questions Request For PreDonation
             if (!request.DonationIntentId.HasValue)
@@ -194,7 +194,7 @@ namespace QatratHayat.Infrastructure.Services
             await _context.SaveChangesAsync();
 
             // 13. Return Screening Response
-            return new SubmitedScreeningResponseDTO
+            return new SubmittedScreeningResponseDTO
             {
                 ScreeningSessionId = session.Id,
                 SessionType = session.SessionType,
@@ -209,7 +209,7 @@ namespace QatratHayat.Infrastructure.Services
 
         private void ValidateQuestionsAndAnswers(
            Identity.ApplicationUser user,
-          SubmitedScreeningQuestionsRequestDTO request,
+          SubmittedScreeningQuestionsRequestDTO request,
            List<ScreeningQuestion> activeQuestions)
         {
             if (!activeQuestions.Any())
@@ -243,24 +243,24 @@ namespace QatratHayat.Infrastructure.Services
                 if (question.IsForFemaleOnly && user.Gender != Gender.Female)
                     throw new Exception($"Question '{question.TextEn}' is for female users only.");
 
-                if (question.RequiresDateValue && !submittedAnswer.ConditionalDateValue.HasValue)
-                    throw new Exception($"Question '{question.TextEn}' requires a date value.");
+                if (submittedAnswer.Answer && question.RequiresDateValue && !submittedAnswer.ConditionalDateValue.HasValue)
+                    throw new BadRequestException($"Question '{question.TextEn}' requires a date value.");
 
-                if (!question.RequiresDateValue && submittedAnswer.ConditionalDateValue.HasValue)
-                    throw new Exception($"Question '{question.TextEn}' should not contain a date value.");
+                if (!submittedAnswer.Answer && submittedAnswer.ConditionalDateValue.HasValue)
+                    throw new BadRequestException($"Question '{question.TextEn}' should not contain a date value.");
 
-                if (question.RequiresAdditionalText && string.IsNullOrWhiteSpace(submittedAnswer.AdditionalText))
-                    throw new Exception($"Question '{question.TextEn}' requires additional text.");
+                if (submittedAnswer.Answer && question.RequiresAdditionalText && string.IsNullOrWhiteSpace(submittedAnswer.AdditionalText))
+                    throw new BadRequestException($"Question '{question.TextEn}' requires additional text.");
 
-                if (!question.RequiresAdditionalText && !string.IsNullOrWhiteSpace(submittedAnswer.AdditionalText))
-                    throw new Exception($"Question '{question.TextEn}' should not contain additional text.");
+                if ((!submittedAnswer.Answer || !question.RequiresAdditionalText) && !string.IsNullOrWhiteSpace(submittedAnswer.AdditionalText))
+                    throw new BadRequestException($"Question '{question.TextEn}' should not contain additional text.");
             }
         }
 
 
 
         private EligibilityStatus CalculatePreDonationEligibility(
-          SubmitedScreeningQuestionsRequestDTO request,
+          SubmittedScreeningQuestionsRequestDTO request,
           List<ScreeningQuestion> activeQuestions)
         {
             var autoDeferralYesQuestions = activeQuestions
