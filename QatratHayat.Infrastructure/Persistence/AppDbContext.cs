@@ -12,9 +12,9 @@ namespace QatratHayat.Infrastructure.Persistence
             : base(options)
         {
         }
-        
+
         //DBSet here
-        public DbSet<NationalRegistry> NationalRegistries { get; set; }= null!;
+        public DbSet<NationalRegistry> NationalRegistries { get; set; } = null!;
         public DbSet<DonorProfile> DonorProfiles { get; set; } = null!;
         public DbSet<Donation> Donations { get; set; } = null!;
         public DbSet<Beneficiary> Beneficiaries { get; set; } = null!;
@@ -32,7 +32,7 @@ namespace QatratHayat.Infrastructure.Persistence
         public DbSet<ScreeningSession> ScreeningSessions { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<AuditLog> AuditLogs { get; set; } = null!;
-        
+
 
         //Give constrains for Tables in DB 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -86,9 +86,10 @@ namespace QatratHayat.Infrastructure.Persistence
                       .HasForeignKey(x => x.RecipientUserId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                
+
 
             });
+
 
             // DonorProfile
             builder.Entity<DonorProfile>(entity =>

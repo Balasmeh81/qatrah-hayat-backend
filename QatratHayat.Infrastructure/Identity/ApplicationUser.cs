@@ -20,7 +20,7 @@ namespace QatratHayat.Infrastructure.Identity
         [Required]
         public DateTime DateOfBirth { get; set; }
         [Required]
-        public Gender  Gender { get; set; }
+        public Gender Gender { get; set; }
         [Required]
         public MaritalStatus MaritalStatus { get; set; }
         [Required]

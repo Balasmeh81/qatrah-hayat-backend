@@ -6,7 +6,7 @@ namespace QatratHayat.Domain.Entities
     public class Notification
     {
         public int Id { get; set; }
-       
+
         [Required]
         public NotificationType NotificationType { get; set; }
         [Required]
@@ -24,13 +24,13 @@ namespace QatratHayat.Domain.Entities
         [MaxLength(1000)]
         public string ContentEn { get; set; } = null!;
         [Required]
-        public NotificationStatus NotificationStatus { get; set; }  
+        public NotificationStatus NotificationStatus { get; set; }
         [Required]
         public DateTime CreatedAt { get; set; }
 
         public LinkedEntityType? LinkedEntityType { get; set; }
         public int? LinkedEntityId { get; set; }
-        public DateTime? SentAt { get; set; }        
+        public DateTime? SentAt { get; set; }
         public DateTime? ReadAt { get; set; }
 
         // Navigation Property

@@ -8,8 +8,8 @@ namespace QatratHayat.Domain.Entities
     public class Donation
     {
         public int Id { get; set; }
-        [Required]  
-        public DonationType DonationType { get; set; }      
+        [Required]
+        public DonationType DonationType { get; set; }
         [Required]
         public InitialEligibilityStatus InitialEligibilityStatus { get; set; }
         [Required]
@@ -30,7 +30,7 @@ namespace QatratHayat.Domain.Entities
 
         [Required]
         public int BranchId { get; set; }
-        public Branch Branch { get; set; }=null!;
+        public Branch Branch { get; set; } = null!;
 
         public int? BloodRequestId { get; set; }
         public BloodRequest? BloodRequest { get; set; }

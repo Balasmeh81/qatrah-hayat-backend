@@ -9,7 +9,7 @@ namespace QatratHayat.Application.Features.Auth.Interfaces
            string email,
            string fullNameAr,
            string fullNameEn,
-           UserRole role,
+           List<UserRole> roles,
            int? branchId,
            int? hospitalId);
     }

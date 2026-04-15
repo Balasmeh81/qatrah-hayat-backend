@@ -36,10 +36,9 @@ namespace QatratHayat.Application.Features.Accounts.DTOs
         public string ConfirmPassword { get; set; } = null!;
 
         [Required]
-        public bool iAgree { get; set; }=false;
+        public bool iAgree { get; set; } = false;
         [Required]
         public bool iConfirm { get; set; } = false;
-
         public string? JobTitle { get; set; }
         public string? Address { get; set; }
     }
