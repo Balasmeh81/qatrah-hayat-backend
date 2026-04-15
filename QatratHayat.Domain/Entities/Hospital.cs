@@ -22,14 +22,14 @@ namespace QatratHayat.Domain.Entities
         [Required]
         public bool IsDeleted { get; set; }
         [Required]
-        public DateTime CreatedAt { get; set; } 
+        public DateTime CreatedAt { get; set; }
 
         public DateTime? UpdatedAt { get; set; }
 
         // Navigation Property
         [Required]
         public int BranchId { get; set; }
-        public Branch Branch { get; set; }= null!;
+        public Branch Branch { get; set; } = null!;
 
         public ICollection<BloodRequest> BloodRequests { get; set; } = new List<BloodRequest>();
     }

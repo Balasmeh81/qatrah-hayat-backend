@@ -1,6 +1,6 @@
-﻿using System.Net;
+﻿using QatratHayat.Application.Common.Exceptions;
+using System.Net;
 using System.Text.Json;
-using QatratHayat.Application.Common.Exceptions;
 
 namespace QatratHayat.API.Middlewares
 {
@@ -21,38 +21,58 @@ namespace QatratHayat.API.Middlewares
         {
             try
             {
-                // Continue request processing through the next middleware in the pipeline.
                 await next(context);
             }
             catch (BadRequestException ex)
-            // Expected client-side/business validation error.
             {
                 logger.LogWarning(ex, "Bad request exception occurred.");
-                await HandleExceptionAsync(context, HttpStatusCode.BadRequest, "Bad Request", ex.Message, ex.Errors);
+                await HandleExceptionAsync(
+                    context,
+                    HttpStatusCode.BadRequest,
+                    "Bad Request",
+                    ex.Message,
+                    ex.Code,
+                    ex.Errors);
             }
             catch (UnauthorizedException ex)
             {
-                // Authentication/authorization related failure.
                 logger.LogWarning(ex, "Unauthorized exception occurred.");
-                await HandleExceptionAsync(context, HttpStatusCode.Unauthorized, "Unauthorized", ex.Message);
+                await HandleExceptionAsync(
+                    context,
+                    HttpStatusCode.Unauthorized,
+                    "Unauthorized",
+                    ex.Message,
+                    ex.Code);
             }
             catch (NotFoundException ex)
             {
-                // Requested resource does not exist.
                 logger.LogWarning(ex, "Not found exception occurred.");
-                await HandleExceptionAsync(context, HttpStatusCode.NotFound, "Not Found", ex.Message);
+                await HandleExceptionAsync(
+                    context,
+                    HttpStatusCode.NotFound,
+                    "Not Found",
+                    ex.Message,
+                    ex.Code);
             }
             catch (ConflictException ex)
             {
-                // Conflict usually means duplicate or state conflict.
                 logger.LogWarning(ex, "Conflict exception occurred.");
-                await HandleExceptionAsync(context, HttpStatusCode.Conflict, "Conflict", ex.Message);
+                await HandleExceptionAsync(
+                    context,
+                    HttpStatusCode.Conflict,
+                    "Conflict",
+                    ex.Message,
+                    ex.Code);
             }
             catch (Exception ex)
             {
-                // Unexpected server-side error.
                 logger.LogError(ex, "Unhandled exception occurred.");
-                await HandleExceptionAsync(context, HttpStatusCode.InternalServerError, "Server Error", "An unexpected error occurred.");
+                await HandleExceptionAsync(
+                    context,
+                    HttpStatusCode.InternalServerError,
+                    "Server Error",
+                    "An unexpected error occurred.",
+                    ErrorCodes.InternalServerError);
             }
         }
 
@@ -61,17 +81,18 @@ namespace QatratHayat.API.Middlewares
             HttpStatusCode statusCode,
             string title,
             string message,
+            string code,
             List<string>? errors = null)
         {
-            // Set response type and HTTP status code.
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = (int)statusCode;
-            // Create a consistent JSON error shape for frontend consumption.
+
             var response = new ErrorResponse
             {
                 Title = title,
                 Status = (int)statusCode,
                 Message = message,
+                Code = code,
                 Errors = errors ?? new List<string>()
             };
 
@@ -85,6 +106,7 @@ namespace QatratHayat.API.Middlewares
         public string Title { get; set; } = string.Empty;
         public int Status { get; set; }
         public string Message { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
         public List<string> Errors { get; set; } = new();
     }
 }

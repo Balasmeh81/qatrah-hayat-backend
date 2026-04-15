@@ -2,6 +2,6 @@
 {
     public enum LinkedEntityType
     {
-        BloodRequest=1, Donation=2
+        BloodRequest = 1, Donation = 2
     }
 }

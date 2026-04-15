@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QatratHayat.Domain.Entities
 {
-    
+
     public class NationalRegistry
     {
 
@@ -17,7 +17,7 @@ namespace QatratHayat.Domain.Entities
         public string FullNameAr { get; set; } = null!;
         [Required]
         [MaxLength(256)]
-        public string  FullNameEn { get; set; }=null!;
+        public string FullNameEn { get; set; } = null!;
         [Required]
         public DateTime DateOfBirth { get; set; }
         [Required]

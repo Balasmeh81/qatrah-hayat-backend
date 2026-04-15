@@ -35,12 +35,12 @@ namespace QatratHayat.Domain.Entities
         public string? Email { get; set; }
         [Phone]
         public string? Phone { get; set; }
-              
+
         public DateTime? UpdatedAt { get; set; }
-  
+
 
         // Navigation Property
-       
+
         [Required]
         public int ManagerUserId { get; set; }
 

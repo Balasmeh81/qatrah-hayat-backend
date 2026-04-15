@@ -1,19 +1,21 @@
-﻿using QatratHayat.Domain.Enums;
+﻿
 
-namespace QatratHayat.Application.Features.Accounts.DTOs
+using QatratHayat.Domain.Enums;
+
+namespace QatratHayat.Application.Features.Auth.DTOs
 {
-    // This class represents the data returned to the user after successful registration or login.
-    public class AuthResponseDto
+    public class UserInfoDto
     {
         public int UserId { get; set; }
         public string Email { get; set; } = null!;
         public string FullNameAr { get; set; } = null!;
         public string FullNameEn { get; set; } = null!;
-        public UserRole Role { get; set; } 
+        public List<UserRole> Roles { get; set; } = null!;
         public Gender Gender { get; set; }
         public DateTime DateOfBirth { get; set; }
         public BloodType BloodType { get; set; }
+        public int? BranchId { get; set; }
+        public int? HospitalId { get; set; }
         public bool IsProfileCompleted { get; set; }
-        public string Token { get; set; } = null!;
     }
 }

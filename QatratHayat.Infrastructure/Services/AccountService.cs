@@ -1,8 +1,8 @@
-﻿using Azure.Core;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using QatratHayat.Application.Common.Exceptions;
 using QatratHayat.Application.Features.Accounts.DTOs;
+using QatratHayat.Application.Features.Auth.DTOs;
 using QatratHayat.Application.Features.Auth.Interfaces;
 using QatratHayat.Domain.Entities;
 using QatratHayat.Domain.Enums;
@@ -22,7 +22,8 @@ namespace QatratHayat.Infrastructure.Services
         public AccountService(
             UserManager<ApplicationUser> _userManager,
             AppDbContext _context,
-            IJwtTokenService _jwtTokenService)
+            IJwtTokenService _jwtTokenService
+        )
         {
             userManager = _userManager;
             context = _context;
@@ -30,7 +31,7 @@ namespace QatratHayat.Infrastructure.Services
         }
 
         //User Register
-        public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
+        public async Task<RegisterResponseDto> RegisterCitizenAsync(RegisterRequestDto request)
         {
             // Normalize important string inputs first to avoid problems caused by extra spaces.
             var email = request.Email.Trim();
@@ -40,33 +41,45 @@ namespace QatratHayat.Infrastructure.Services
             if (request.Password != request.ConfirmPassword)
                 throw new BadRequestException(
                     "Registration failed.",
-                    new List<string> { "Password and Confirm Password do not match." });
+                    ErrorCodes.ValidationError,
+                    new List<string> { "Password and Confirm Password do not match." }
+                );
 
-            //2. Check The registryRecord 
-            var registryRecord = await context.NationalRegistries
-                .AsNoTracking()
+            //2. Check The registryRecord
+            var registryRecord = await context
+                .NationalRegistries.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.NationalId == nationalId);
 
             if (registryRecord is null)
-                throw new NotFoundException("National ID was not found in National Registry.");
+                throw new NotFoundException(
+                    "National ID was not found in National Registry.",
+                    ErrorCodes.NationalIdNotFound
+                );
 
             if (!registryRecord.IsJordanian)
-                throw new BadRequestException("Only Jordanian citizens can register.");
+                throw new BadRequestException(
+                    "Only Jordanian citizens can register.",
+                    ErrorCodes.NonJordanianCitizen
+                );
             //3. Check Duplicate NationalId
-            var existingUserByNationalId = await context.Users
-                .AsNoTracking()
+            var existingUserByNationalId = await context
+                .Users.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.NationalId == nationalId);
 
             if (existingUserByNationalId is not null)
-                throw new ConflictException("National ID is already registered.");
+                throw new ConflictException(
+                    "National ID is already registered.",
+                    ErrorCodes.NationalIdAlreadyRegistered
+                );
 
             //4. Check If The Email Is Alrady Registed
             // Using UserManager here is better for email because Identity handles normalized email values.
             var existingUserByEmail = await userManager.FindByEmailAsync(email);
             if (existingUserByEmail is not null)
-                throw new ConflictException("Email is already registered.");
-
-         
+                throw new ConflictException(
+                    "Email is already registered.",
+                    ErrorCodes.EmailAlreadyRegistered
+                );
 
             //5. Create User
             var user = new ApplicationUser
@@ -77,7 +90,7 @@ namespace QatratHayat.Infrastructure.Services
                 FullNameAr = request.FullNameAr.Trim(),
                 FullNameEn = request.FullNameEn.Trim(),
                 DateOfBirth = request.DateOfBirth,
-                Gender=request.Gender,
+                Gender = request.Gender,
                 PhoneNumber = request.PhoneNumber.Trim(),
                 Address = request.Address,
                 JobTitle = request.JobTitle,
@@ -85,7 +98,7 @@ namespace QatratHayat.Infrastructure.Services
                 IsActive = true,
                 IsDeleted = false,
                 IsProfileCompleted = false,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
             };
 
             // This transaction ensures that user creation, role assignment,
@@ -99,7 +112,9 @@ namespace QatratHayat.Infrastructure.Services
             {
                 throw new BadRequestException(
                     "Registration failed.",
-                    createResult.Errors.Select(x => x.Description).ToList());
+                    ErrorCodes.RegistrationFailed,
+                    createResult.Errors.Select(x => x.Description).ToList()
+                );
             }
 
             //7. Give The User Role
@@ -109,7 +124,9 @@ namespace QatratHayat.Infrastructure.Services
             {
                 throw new BadRequestException(
                     "Failed to assign user role.",
-                    roleResult.Errors.Select(x => x.Description).ToList());
+                    ErrorCodes.RoleAssignmentFailed,
+                    roleResult.Errors.Select(x => x.Description).ToList()
+                );
             }
 
             //8. Create Donor Profile
@@ -121,8 +138,8 @@ namespace QatratHayat.Infrastructure.Services
                 EligibilityStatus = EligibilityStatus.Eligible,
                 DonationCount = 0,
                 CreatedAt = DateTime.UtcNow,
-                iAgree= request.iAgree,
-                iConfirm= request.iConfirm,
+                iAgree = request.iAgree,
+                iConfirm = request.iConfirm,
             };
 
             await context.DonorProfiles.AddAsync(donorProfile);
@@ -130,105 +147,119 @@ namespace QatratHayat.Infrastructure.Services
 
             await transaction.CommitAsync();
 
-            //9. Generate JWT 
-            var token = jwtTokenService.GenerateToken(
-                user.Id,
-                user.Email!,
-                user.FullNameAr,
-                user.FullNameEn,
-                UserRole.Citizen,
-                null,
-                null);
-
-            //10. Returne AuthResponse
-            return new AuthResponseDto
+            //9. Returne RegisterResponseDto
+            return new RegisterResponseDto
             {
                 UserId = user.Id,
                 Email = user.Email!,
                 FullNameAr = user.FullNameAr,
                 FullNameEn = user.FullNameEn,
-                Role = UserRole.Citizen,
-                DateOfBirth = user.DateOfBirth,
-                BloodType= request.BloodType,
-                Gender= request.Gender,
-                Token = token
+                Message = "Account created successfully. Please log in.",
             };
         }
-        public async Task<ApplicationUser?> GetUserAsync(string nationalId) {
 
+        public async Task<ApplicationUser?> GetUserAsync(string nationalId)
+        {
             var normalizedInput = nationalId.Trim();
             ApplicationUser? user;
             //1. Searech For User
-            user = await context.Users
-                    .FirstOrDefaultAsync(x => x.NationalId == normalizedInput);
+            user = await context.Users.FirstOrDefaultAsync(x => x.NationalId == normalizedInput);
             //2. Check If User Found
             if (user is null)
                 return null;
 
             return user;
-
         }
 
-        public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
+        public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
         {
             var normalizedInput = request.NationalId.Trim();
 
             ApplicationUser? user;
             // 1. Get User
-            user = await GetUserAsync(request.NationalId);
+            user = await GetUserAsync(normalizedInput);
             // 2.Check User
             if (user is null)
-            throw new UnauthorizedException("Invalid email/National ID or password.");
+                throw new UnauthorizedException(
+                    "Invalid email/National ID or password.",
+                    ErrorCodes.AuthInvalidCredentials
+                );
 
             //3. Check User Is Active
             if (!user.IsActive || user.IsDeleted)
-                throw new UnauthorizedException("This account is inactive.");
+                throw new UnauthorizedException(
+                    "This account is inactive.",
+                    ErrorCodes.AuthAccountInactive
+                );
 
             //4. Check password Valid
             var passwordValid = await userManager.CheckPasswordAsync(user, request.Password);
             if (!passwordValid)
-                throw new UnauthorizedException("Invalid email/National ID or password.");
+                throw new UnauthorizedException(
+                    "Invalid email/National ID or password.",
+                    ErrorCodes.AuthInvalidCredentials
+                );
 
             //5. Bring The Role
-            var roles = await userManager.GetRolesAsync(user);
-            var roleName = roles.FirstOrDefault();
+            var roleNames = await userManager.GetRolesAsync(user);
 
-            if (string.IsNullOrWhiteSpace(roleName))
-                throw new BadRequestException("User role is not assigned.");
+            // check roleNames if is null
+            if (roleNames is null || roleNames.Count == 0)
+                throw new BadRequestException(
+                    "User role is not assigned.",
+                    ErrorCodes.UserRoleNotAssigned
+                );
+            //6. Convert Role Names To UserRole Enum
+            var parsedRoles = new List<UserRole>();
 
-            //6. Convert Role To String
-            if (!Enum.TryParse<UserRole>(roleName, out var parsedRole))
-                throw new BadRequestException("User role is invalid.");
+            foreach (var roleName in roleNames)
+            {
+                if (!Enum.TryParse<UserRole>(roleName, out var parsedRole))
+                    throw new BadRequestException(
+                        $"User role '{roleName}' is invalid.",
+                        ErrorCodes.UserRoleInvalid
+                    );
+
+                parsedRoles.Add(parsedRole);
+            }
+
             //7. Bring The bloodType
-            BloodType bloodType = await context.DonorProfiles
-                    .Where(x => x.UserId == user.Id)
-                    .Select(x => x.BloodType)
-                    .FirstOrDefaultAsync();
+            var donorProfile = await context
+                .DonorProfiles.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.UserId == user.Id);
 
+            if (donorProfile is null)
+                throw new NotFoundException(
+                    "Donor profile not found.",
+                    ErrorCodes.DonorProfileNotFound
+                );
 
-            //8. Generate JWT 
+            BloodType bloodType = donorProfile.BloodType;
+
+            //8. Generate JWT
             var token = jwtTokenService.GenerateToken(
                 user.Id,
                 user.Email!,
                 user.FullNameAr,
                 user.FullNameEn,
-                parsedRole,
+                parsedRoles,
                 user.BranchId,
-                user.HospitalId);
+                user.HospitalId
+            );
 
             //9. Returne AuthResponse
-            return new AuthResponseDto
+            return new LoginResponseDto
             {
                 UserId = user.Id,
                 Email = user.Email!,
                 FullNameAr = user.FullNameAr,
                 FullNameEn = user.FullNameEn,
-                Role = UserRole.Citizen,
+                Roles = parsedRoles,
                 DateOfBirth = user.DateOfBirth,
                 BloodType = bloodType,
                 Gender = user.Gender,
                 IsProfileCompleted = user.IsProfileCompleted,
-                Token = token
+                Token = token,
             };
         }
 
@@ -238,34 +269,76 @@ namespace QatratHayat.Infrastructure.Services
             var userIdClaim = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrWhiteSpace(userIdClaim))
-                throw new UnauthorizedException("User ID claim was not found in token.");
+                throw new UnauthorizedException(
+                    "User ID claim was not found in token.",
+                    ErrorCodes.AuthMissingUserIdClaim
+                );
 
             if (!int.TryParse(userIdClaim, out int userId))
-                throw new UnauthorizedException("Invalid user ID in token.");
+                throw new UnauthorizedException(
+                    "Invalid user ID in token.",
+                    ErrorCodes.AuthInvalidUserIdClaim
+                );
 
             //2. Get User From DB
-            var user = await context.Users
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == userId);
+            var user = await context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId);
 
             if (user is null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException("User not found.", ErrorCodes.UserNotFound);
 
             if (!user.IsActive || user.IsDeleted)
-                throw new UnauthorizedException("This account is inactive.");
+                throw new UnauthorizedException(
+                    "This account is inactive.",
+                    ErrorCodes.AuthAccountInactive
+                );
 
-            //3. Get User Role
-            var roles = await userManager.GetRolesAsync(user);
-            var roleName = roles.FirstOrDefault() ?? UserRole.Citizen.ToString();
+            //3. Bring The Role
+            var roleNames = await userManager.GetRolesAsync(user);
 
-            //4. Return CurrentUser Date
+            // check roleNames if is null
+            if (roleNames is null || roleNames.Count == 0)
+                throw new BadRequestException(
+                    "User role is not assigned.",
+                    ErrorCodes.UserRoleNotAssigned
+                );
+            //4. Convert Role Names To UserRole Enum
+            var parsedRoles = new List<UserRole>();
+
+            foreach (var roleName in roleNames)
+            {
+                if (!Enum.TryParse<UserRole>(roleName, out var parsedRole))
+                    throw new BadRequestException(
+                        $"User role '{roleName}' is invalid.",
+                        ErrorCodes.UserRoleInvalid
+                    );
+
+                parsedRoles.Add(parsedRole);
+            }
+            //5. Bring The bloodType
+            var donorProfile = await context
+                .DonorProfiles.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.UserId == user.Id);
+
+            if (donorProfile is null)
+                throw new NotFoundException(
+                    "Donor profile not found.",
+                    ErrorCodes.DonorProfileNotFound
+                );
+
+            BloodType bloodType = donorProfile.BloodType;
+
+            //6. Return CurrentUser Date
             return new CurrentUserDto
             {
                 UserId = user.Id,
                 Email = user.Email!,
                 FullNameAr = user.FullNameAr,
                 FullNameEn = user.FullNameEn,
-                Role = roleName
+                Roles = parsedRoles,
+                DateOfBirth = user.DateOfBirth,
+                BloodType = bloodType,
+                Gender = user.Gender,
+                IsProfileCompleted = user.IsProfileCompleted,
             };
         }
     }

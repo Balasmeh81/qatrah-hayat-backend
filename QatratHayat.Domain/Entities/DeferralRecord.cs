@@ -5,8 +5,8 @@ namespace QatratHayat.Domain.Entities
 {
     public class DeferralRecord
     {
-       public int Id { get; set; }
-        
+        public int Id { get; set; }
+
         [Required]
         public DeferralType DeferralType { get; set; }
         [Required]
@@ -19,7 +19,7 @@ namespace QatratHayat.Domain.Entities
 
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-       
+
 
         // Navigation Property
         [Required]

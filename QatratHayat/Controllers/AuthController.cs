@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QatratHayat.Application.Features.Accounts.DTOs;
+using QatratHayat.Application.Features.Auth.DTOs;
 using QatratHayat.Application.Features.Auth.Interfaces;
 
 namespace QatratHayat.API.Controllers
@@ -18,22 +19,22 @@ namespace QatratHayat.API.Controllers
         }
         // POST: api/Auth/register
         // Creates a new citizen account, then returns user data + JWT token.
-        [HttpPost("register")]
-        public async Task<ActionResult<AuthResponseDto>> Register(RegisterRequestDto request)
+        [HttpPost("registerCitizen")]
+        public async Task<ActionResult<RegisterResponseDto>> RegisterCitizenAsync(RegisterRequestDto request)
         {
-            var result = await accountService.RegisterAsync(request);
+            var result = await accountService.RegisterCitizenAsync(request);
             return Ok(result);
         }
         // POST: api/Auth/login
         // Logs in the user using email or national ID, then returns user data + JWT token.
         [HttpPost("login")]
-        public async Task<ActionResult<AuthResponseDto>> Login(LoginRequestDto request)
+        public async Task<ActionResult<LoginResponseDto>> Login(LoginRequestDto request)
         {
             var result = await accountService.LoginAsync(request);
             return Ok(result);
         }
         // POST: api/Auth/login
-        // Logs in the user using email or national ID, then returns user data + JWT token.
+        // Logs in the user using  national ID, then returns user data + JWT token.
         [Authorize]
         [HttpGet("me")]
         public async Task<ActionResult<CurrentUserDto>> GetCurrentUser()

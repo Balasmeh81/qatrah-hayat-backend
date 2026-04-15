@@ -1,5 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
-using QatratHayat.Domain.Enums;
+﻿using QatratHayat.Domain.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace QatratHayat.Domain.Entities
 {
@@ -14,10 +14,10 @@ namespace QatratHayat.Domain.Entities
         public string TitleEn { get; set; } = null!;
         [Required]
         [MaxLength(2000)]
-        public string DescriptionAr { get; set; }= null!;
+        public string DescriptionAr { get; set; } = null!;
         [Required]
         [MaxLength(2000)]
-        public string DescriptionEn { get; set; }=null!;
+        public string DescriptionEn { get; set; } = null!;
         [Required]
         public CampaignType Type { get; set; }
         [Required]
@@ -30,10 +30,10 @@ namespace QatratHayat.Domain.Entities
         public bool IsDeleted { get; set; }
         [Required]
         public DateTime CreatedAt { get; set; }
-       
+
 
         [MaxLength(300)]
-        public string? Location { get; set; }   
+        public string? Location { get; set; }
         public DateTime? UpdatedAt { get; set; }
 
         // Navigation Property

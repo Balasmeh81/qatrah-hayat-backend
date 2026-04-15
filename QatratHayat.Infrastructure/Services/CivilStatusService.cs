@@ -18,16 +18,22 @@ namespace QatratHayat.Infrastructure.Services
         public async Task<NationalRegistryResponseDto> GetNationalRegistryAsync(string nationalId)
         {
             if (string.IsNullOrWhiteSpace(nationalId))
-                throw new BadRequestException("National ID is required.");
+                throw new BadRequestException(
+                    "National ID is required.",
+                    ErrorCodes.NationalIdRequired
+                );
 
             nationalId = nationalId.Trim();
 
-            var result = await context.NationalRegistries
-                .AsNoTracking()
+            var result = await context
+                .NationalRegistries.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.NationalId == nationalId);
 
             if (result is null)
-                throw new NotFoundException("National ID not found in National Registry.");
+                throw new NotFoundException(
+                    "National ID was not found in National Registry.",
+                    ErrorCodes.NationalIdNotFound
+                );
 
             return new NationalRegistryResponseDto
             {
@@ -36,7 +42,7 @@ namespace QatratHayat.Infrastructure.Services
                 FullNameEn = result.FullNameEn,
                 DateOfBirth = result.DateOfBirth,
                 BloodType = result.BloodType,
-                Gender = result.Gender
+                Gender = result.Gender,
             };
         }
     }

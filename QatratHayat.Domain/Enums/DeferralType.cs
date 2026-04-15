@@ -4,6 +4,6 @@
     {
         Temporary = 1,
         Permanent = 2,
-        NoDeferral=3
+        NoDeferral = 3
     }
 }

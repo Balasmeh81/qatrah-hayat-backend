@@ -2,8 +2,8 @@
 {
     public enum EligibilityStatus
     {
-        Eligible=1,
-        TempDeferred=2,
-        PermDeferred=3 
+        Eligible = 1,
+        TempDeferred = 2,
+        PermDeferred = 3
     }
 }

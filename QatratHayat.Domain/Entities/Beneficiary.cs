@@ -4,7 +4,7 @@ namespace QatratHayat.Domain.Entities
 {
     public class Beneficiary
     {
-        
+
         public int Id { get; set; }
         [Required]
         [StringLength(10, MinimumLength = 10)]
@@ -15,7 +15,7 @@ namespace QatratHayat.Domain.Entities
         public string FullNameAr { get; set; } = null!;
         [Required]
         [MaxLength(256)]
-        public string FullNameEn { get; set; } = null!;        
+        public string FullNameEn { get; set; } = null!;
         [Required]
         public bool IsTemporary { get; set; }
         [Required]

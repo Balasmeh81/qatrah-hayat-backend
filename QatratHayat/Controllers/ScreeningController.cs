@@ -9,7 +9,7 @@ namespace QatratHayat.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    
+
     public class ScreeningController : ControllerBase
     {
         private readonly IScreeningSessionService _screeningSessionService;
@@ -19,7 +19,7 @@ namespace QatratHayat.API.Controllers
             _screeningSessionService = screeningSessionService;
         }
         [HttpGet("questions")]
-        public async Task<ActionResult<List<GetScreeningQuestionsResponseDTO>>> GetQuestions([FromQuery] ScreeningSessionType sessionType, bool isForFemaleOnly )
+        public async Task<ActionResult<List<GetScreeningQuestionsResponseDTO>>> GetQuestions([FromQuery] ScreeningSessionType sessionType, bool isForFemaleOnly)
         {
 
             var result = await _screeningSessionService.GetScreeningQuestionsAsync(sessionType, isForFemaleOnly);
@@ -28,7 +28,7 @@ namespace QatratHayat.API.Controllers
         }
         [Authorize]
         [HttpPost("submit")]
-        public async Task<ActionResult<SubmittedScreeningResponseDTO>> Submit( SubmittedScreeningQuestionsRequestDTO request)
+        public async Task<ActionResult<SubmittedScreeningResponseDTO>> Submit(SubmittedScreeningQuestionsRequestDTO request)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 

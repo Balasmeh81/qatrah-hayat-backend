@@ -1,10 +1,10 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using QatratHayat.Application.Features.Auth.Interfaces;
 using QatratHayat.Domain.Enums;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace QatratHayat.Infrastructure.Identity
 {
@@ -22,7 +22,7 @@ namespace QatratHayat.Infrastructure.Identity
             string email,
             string fullNameAr,
             string fullNameEn,
-            UserRole role,
+            List<UserRole> roles,
             int? branchId,
             int? hospitalId)
         {
@@ -43,10 +43,13 @@ namespace QatratHayat.Infrastructure.Identity
                   // Custom claims for displaying user information in the app if needed.
                 new Claim("fullNameAr", fullNameAr),
                 new Claim("fullNameEn", fullNameEn),
-
-                // Keep role claim for ASP.NET Core authorization.
-                new Claim(ClaimTypes.Role, role.ToString())
             };
+            // Add all roles
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role.ToString()));
+            }
+
             // Add branchId only if the user belongs to a branch.
             if (branchId.HasValue)
                 claims.Add(new Claim("branchId", branchId.Value.ToString()));

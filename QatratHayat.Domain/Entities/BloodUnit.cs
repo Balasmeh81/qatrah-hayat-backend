@@ -34,11 +34,11 @@ namespace QatratHayat.Domain.Entities
 
         [Required]
         public int BranchId { get; set; }
-        public Branch Branch { get; set; }=null!;
+        public Branch Branch { get; set; } = null!;
 
         [Required]
         public int DonationId { get; set; }
-        public Donation Donation { get; set; }=null!;
+        public Donation Donation { get; set; } = null!;
 
         public int? DisposedByEmployeeId { get; set; }
     }
