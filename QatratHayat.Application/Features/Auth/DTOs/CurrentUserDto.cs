@@ -1,9 +1,9 @@
-﻿using QatratHayat.Application.Features.Auth.DTOs;
+﻿using QatratHayat.Application.Common.DTOS;
 
 namespace QatratHayat.Application.Features.Accounts.DTOs
 {
     // This class represents the current logged-in user data.
-    public class CurrentUserDto : UserInfoDto
+    public class CurrentUserDto : BaseUserInfoDto
     {
 
     }

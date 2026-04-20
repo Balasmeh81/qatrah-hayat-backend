@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QatratHayat.API.Middleware;
 using QatratHayat.API.Middlewares;
 using QatratHayat.Infrastructure;
 using System.Text;
@@ -13,7 +14,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAngularDevClient", policy =>
     {
         policy
-            .WithOrigins("http://localhost:4200")
+            .WithOrigins("http://localhost:4200", "http://localhost:54893", "http://localhost:64452")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -95,6 +96,7 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Put exception middleware early so it can catch exceptions from most of the pipeline.
+app.UseMiddleware<RequestTimingMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())

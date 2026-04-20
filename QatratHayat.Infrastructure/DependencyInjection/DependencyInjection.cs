@@ -4,6 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QatratHayat.Application.Features.Auth.Interfaces;
 using QatratHayat.Application.Features.ScreeningQuestions.Interfaces;
+using QatratHayat.Application.Features.UsersManagement.Interfaces;
+using QatratHayat.Application.Features.UsersManagement.Services;
 using QatratHayat.Infrastructure.Identity;
 using QatratHayat.Infrastructure.Persistence;
 using QatratHayat.Infrastructure.Services;
@@ -38,6 +40,7 @@ namespace QatratHayat.Infrastructure
             services.AddScoped<IAccountService, AccountService>();
             services.AddScoped<ICivilStatusService, CivilStatusService>();
             services.AddScoped<IScreeningSessionService, ScreeningSessionService>();
+            services.AddScoped<IUsersManagementService, UsersManagementService>();
             return services;
         }
     }

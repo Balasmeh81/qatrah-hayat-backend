@@ -10,6 +10,7 @@
         public const string Conflict = "CONFLICT";
         public const string InternalServerError = "INTERNAL_SERVER_ERROR";
 
+
         // Auth / Account
         public const string AuthInvalidCredentials = "AUTH_INVALID_CREDENTIALS";
         public const string AuthAccountInactive = "AUTH_ACCOUNT_INACTIVE";
@@ -29,6 +30,40 @@
         public const string UserRoleNotAssigned = "USER_ROLE_NOT_ASSIGNED";
         public const string UserRoleInvalid = "USER_ROLE_INVALID";
         public const string DonorProfileNotFound = "DONOR_PROFILE_NOT_FOUND";
+
+        // Users Management
+        public const string StaffUserNotFound = "STAFF_USER_NOT_FOUND";
+        public const string CitizenUserNotFound = "CITIZEN_USER_NOT_FOUND";
+
+        public const string UserIsNotStaff = "USER_IS_NOT_STAFF";
+        public const string UserIsNotCitizen = "USER_IS_NOT_CITIZEN";
+
+        public const string InvalidStaffRole = "INVALID_STAFF_ROLE";
+        public const string StaffRoleRequired = "STAFF_ROLE_REQUIRED";
+
+        public const string BranchRequiredForStaffRole = "BRANCH_REQUIRED_FOR_STAFF_ROLE";
+        public const string HospitalRequiredForDoctor = "HOSPITAL_REQUIRED_FOR_DOCTOR";
+
+        public const string BranchNotFound = "BRANCH_NOT_FOUND";
+        public const string HospitalNotFound = "HOSPITAL_NOT_FOUND";
+
+        public const string EmailAlreadyUsed = "EMAIL_ALREADY_USED";
+        public const string NationalIdAlreadyUsed = "NATIONAL_ID_ALREADY_USED";
+        public const string DeletedUserCannotBePromoted = "DELETED_USER_CANNOT_BE_PROMOTED";
+
+        public const string UserActivationFailed = "USER_ACTIVATION_FAILED";
+        public const string UserDeactivationFailed = "USER_DEACTIVATION_FAILED";
+        public const string UserDeletionFailed = "USER_DELETION_FAILED";
+
+        public const string CannotDeleteOwnAccount = "CANNOT_DELETE_OWN_ACCOUNT";
+        public const string CannotDeactivateOwnAccount = "CANNOT_DEACTIVATE_OWN_ACCOUNT";
+
+        public const string PermanentDeferralReasonRequired = "PERMANENT_DEFERRAL_REASON_REQUIRED";
+        public const string DeferralRecordNotFound = "DEFERRAL_RECORD_NOT_FOUND";
+
+        public const string StaffCreationFailed = "STAFF_CREATION_FAILED";
+        public const string StaffUpdateFailed = "STAFF_UPDATE_FAILED";
+        public const string CitizenUpdateFailed = "CITIZEN_UPDATE_FAILED";
 
         // Screening
         public const string UnsupportedScreeningSessionType = "UNSUPPORTED_SCREENING_SESSION_TYPE";
