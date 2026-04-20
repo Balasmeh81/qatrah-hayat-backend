@@ -16,7 +16,6 @@
     <Folder Include="Features\Donors\" />
     <Folder Include="Features\BloodRequests\" />
     <Folder Include="Features\Inventory\" />
-    <Folder Include="Features\ScreeningQuestions\Services\" />
   </ItemGroup>
 
   <ItemGroup>

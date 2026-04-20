@@ -83,5 +83,20 @@
         public const string DateValueNotAllowed = "DATE_VALUE_NOT_ALLOWED";
         public const string AdditionalTextRequired = "ADDITIONAL_TEXT_REQUIRED";
         public const string AdditionalTextNotAllowed = "ADDITIONAL_TEXT_NOT_ALLOWED";
+
+
+        // Branch Management
+        public const string BranchAlreadyExists = "BRANCH_ALREADY_EXISTS";
+
+        public const string BranchManagerNotFound = "BRANCH_MANAGER_NOT_FOUND";
+        public const string UserIsNotBranchManager = "USER_IS_NOT_BRANCH_MANAGER";
+        public const string BranchManagerAlreadyAssigned = "BRANCH_MANAGER_ALREADY_ASSIGNED";
+
+        public const string BranchCreationFailed = "BRANCH_CREATION_FAILED";
+        public const string BranchUpdateFailed = "BRANCH_UPDATE_FAILED";
+
+        // Hospital Management
+        public const string HospitalAlreadyExists = "HOSPITAL_ALREADY_EXISTS";
+        public const string BranchInactiveOrNotFound = "BRANCH_INACTIVE_OR_NOT_FOUND";
     }
 }

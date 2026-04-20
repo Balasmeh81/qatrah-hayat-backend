@@ -3,7 +3,7 @@ using QatratHayat.Application.Common.DTOS;
 using QatratHayat.Application.Features.UsersManagement.DTOS;
 using QatratHayat.Application.Features.UsersManagement.Interfaces;
 
-namespace QatratHayat.API.Controllers.Admin
+namespace QatratHayat.API.Controllers.UsersManagementControllers
 {
     [ApiController]
     [Route("api/admin/users-management")]

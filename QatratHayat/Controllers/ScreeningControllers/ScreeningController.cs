@@ -5,7 +5,7 @@ using QatratHayat.Application.Features.ScreeningQuestions.Interfaces;
 using QatratHayat.Domain.Enums;
 using System.Security.Claims;
 
-namespace QatratHayat.API.Controllers
+namespace QatratHayat.API.Controllers.ScreeningControllers
 {
     [Route("api/[controller]")]
     [ApiController]

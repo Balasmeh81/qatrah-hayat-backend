@@ -4,7 +4,7 @@ using QatratHayat.Application.Features.Accounts.DTOs;
 using QatratHayat.Application.Features.Auth.DTOs;
 using QatratHayat.Application.Features.Auth.Interfaces;
 
-namespace QatratHayat.API.Controllers
+namespace QatratHayat.API.Controllers.AuthControllers
 {
     [ApiController]
     [Route("api/[controller]")]
