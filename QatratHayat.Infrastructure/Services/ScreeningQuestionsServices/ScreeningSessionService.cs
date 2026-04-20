@@ -118,6 +118,7 @@ namespace QatratHayat.Infrastructure.Services
             // 8. Update Is Profile Completed In User and Save The change in DB
             user.IsProfileCompleted = true;
             user.UpdatedAt = DateTime.UtcNow;
+            //user.DonorProfile.LastDonationDate= Last dontaion answer
             await _context.SaveChangesAsync();
 
             // 9. Return Screening Response

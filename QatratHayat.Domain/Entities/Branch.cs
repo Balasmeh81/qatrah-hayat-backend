@@ -8,7 +8,7 @@ namespace QatratHayat.Domain.Entities
         public int Id { get; set; }
         [Required]
         [MaxLength(256)]
-        public string BranchNameAR { get; set; } = null!;
+        public string BranchNameAr { get; set; } = null!;
         [Required]
         [MaxLength(256)]
         public string BranchNameEn { get; set; } = null!;

@@ -1,9 +1,9 @@
 ﻿using QatratHayat.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
-namespace QatratHayat.Application.Features.Accounts.DTOs
+
+namespace QatratHayat.Application.Features.UsersManagement.DTOS
 {
-    //This Class represents data coming from user SignUp.
-    public class RegisterRequestDto
+    public class AddStaffRequestDto
     {
         [Required]
         [StringLength(10, MinimumLength = 10)]
@@ -27,18 +27,12 @@ namespace QatratHayat.Application.Features.Accounts.DTOs
         [Required]
         [RegularExpression(@"^07\d{8}$", ErrorMessage = "Phone number must start with 07 and contain exactly 10 digits.")]
         public string PhoneNumber { get; set; } = null!;
+        public string? Password { get; set; }
+        public string? ConfirmPassword { get; set; }
         [Required]
-        [MinLength(8)]
-        public string Password { get; set; } = null!;
-        [Required]
-        [Compare(nameof(Password))]
-        public string ConfirmPassword { get; set; } = null!;
+        public UserRole StaffRole { get; set; }
+        public int? BranchId { get; set; }
+        public int? HospitalId { get; set; }
 
-        [Required]
-        public bool iAgree { get; set; } = false;
-        [Required]
-        public bool iConfirm { get; set; } = false;
-        public string? JobTitle { get; set; }
-        public string? Address { get; set; }
     }
 }
