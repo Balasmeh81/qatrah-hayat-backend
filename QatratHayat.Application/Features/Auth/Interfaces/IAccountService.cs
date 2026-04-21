@@ -10,5 +10,9 @@ namespace QatratHayat.Application.Features.Auth.Interfaces
         Task<RegisterResponseDto> RegisterCitizenAsync(RegisterRequestDto request);
         Task<LoginResponseDto> LoginAsync(LoginRequestDto request);
         Task<CurrentUserDto> GetCurrentUserAsync(ClaimsPrincipal userPrincipal);
+
+        Task<ForgotPasswordResponseDto> ForgotPasswordAsync(ForgotPasswordRequestDto request);
+        Task<VerifyResetOtpResponseDto> VerifyResetOtpAsync(VerifyResetOtpRequestDto request);
+        Task<ResetPasswordResponseDto> ResetPasswordAsync(ResetPasswordRequestDto request);
     }
 }

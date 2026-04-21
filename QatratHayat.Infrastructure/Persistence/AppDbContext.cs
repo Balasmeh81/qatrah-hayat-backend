@@ -32,6 +32,7 @@ namespace QatratHayat.Infrastructure.Persistence
         public DbSet<ScreeningSession> ScreeningSessions { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+        public DbSet<PasswordResetOtp> PasswordResetOtps { get; set; } = null!;
 
 
         //Give constrains for Tables in DB 
@@ -88,6 +89,29 @@ namespace QatratHayat.Infrastructure.Persistence
 
 
 
+            });
+            // PasswordResetOtp
+            builder.Entity<PasswordResetOtp>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.HasOne<ApplicationUser>()
+                      .WithMany()
+                      .HasForeignKey(x => x.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(x => x.UserId);
+
+                entity.HasIndex(x => x.ResetSessionToken)
+                      .IsUnique()
+                      .HasFilter("[ResetSessionToken] IS NOT NULL");
+
+                entity.Property(x => x.OtpHash)
+                      .HasMaxLength(256)
+                      .IsRequired();
+
+                entity.Property(x => x.ResetSessionToken)
+                      .HasMaxLength(128);
             });
 
 

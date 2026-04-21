@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using QatratHayat.Application.Common.Interfaces;
+using QatratHayat.Application.Common.Settings;
 using QatratHayat.Application.Features.Auth.Interfaces;
 using QatratHayat.Application.Features.BranchManagement.Interfaces;
 using QatratHayat.Application.Features.BranchManagement.Services;
@@ -20,25 +22,27 @@ namespace QatratHayat.Infrastructure
     {
         public static IServiceCollection AddInfrastructure(
             this IServiceCollection services,
-            IConfiguration configuration)
+            IConfiguration configuration
+        )
         {
             services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(
-                    configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"))
+            );
 
-            services.AddIdentityCore<ApplicationUser>(options =>
-            {
-                options.Password.RequiredLength = 8;
-                options.Password.RequireDigit = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireNonAlphanumeric = false;
+            services
+                .AddIdentityCore<ApplicationUser>(options =>
+                {
+                    options.Password.RequiredLength = 8;
+                    options.Password.RequireDigit = true;
+                    options.Password.RequireUppercase = true;
+                    options.Password.RequireLowercase = true;
+                    options.Password.RequireNonAlphanumeric = false;
 
-                options.User.RequireUniqueEmail = true;
-            })
-            .AddRoles<ApplicationRole>()
-            .AddEntityFrameworkStores<AppDbContext>()
-            .AddDefaultTokenProviders();
+                    options.User.RequireUniqueEmail = true;
+                })
+                .AddRoles<ApplicationRole>()
+                .AddEntityFrameworkStores<AppDbContext>()
+                .AddDefaultTokenProviders();
 
             services.AddScoped<IJwtTokenService, JwtTokenService>();
             services.AddScoped<IAccountService, AccountService>();
@@ -47,6 +51,8 @@ namespace QatratHayat.Infrastructure
             services.AddScoped<IUsersManagementService, UsersManagementService>();
             services.AddScoped<IBranchManagementService, BranchManagementService>();
             services.AddScoped<IHospitalManagementService, HospitalManagementService>();
+            services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
+            services.AddScoped<IEmailService, EmailService>();
             return services;
         }
     }

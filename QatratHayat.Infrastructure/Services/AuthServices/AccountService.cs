@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using QatratHayat.Application.Common.Exceptions;
+using QatratHayat.Application.Common.Interfaces;
 using QatratHayat.Application.Features.Accounts.DTOs;
 using QatratHayat.Application.Features.Auth.DTOs;
 using QatratHayat.Application.Features.Auth.Interfaces;
@@ -9,6 +10,8 @@ using QatratHayat.Domain.Enums;
 using QatratHayat.Infrastructure.Identity;
 using QatratHayat.Infrastructure.Persistence;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace QatratHayat.Infrastructure.Services
 {
@@ -17,17 +20,19 @@ namespace QatratHayat.Infrastructure.Services
         private readonly UserManager<ApplicationUser> userManager;
         private readonly AppDbContext context;
         private readonly IJwtTokenService jwtTokenService;
+        private readonly IEmailService emailService;
 
-        //Constructor
         public AccountService(
             UserManager<ApplicationUser> _userManager,
             AppDbContext _context,
-            IJwtTokenService _jwtTokenService
+            IJwtTokenService _jwtTokenService,
+            IEmailService _emailService
         )
         {
             userManager = _userManager;
             context = _context;
             jwtTokenService = _jwtTokenService;
+            emailService = _emailService;
         }
 
         //User Register
@@ -36,6 +41,13 @@ namespace QatratHayat.Infrastructure.Services
             // Normalize important string inputs first to avoid problems caused by extra spaces.
             var email = request.Email.Trim();
             var nationalId = request.NationalId.Trim();
+            if (!request.iAgree || !request.iConfirm)
+            {
+                throw new BadRequestException(
+                    "Terms agreement and information confirmation are required.",
+                    ErrorCodes.ValidationError
+                );
+            }
 
             //1. Check For Password
             if (request.Password != request.ConfirmPassword)
@@ -87,10 +99,10 @@ namespace QatratHayat.Infrastructure.Services
                 UserName = email,
                 Email = email,
                 NationalId = nationalId,
-                FullNameAr = request.FullNameAr.Trim(),
-                FullNameEn = request.FullNameEn.Trim(),
-                DateOfBirth = request.DateOfBirth,
-                Gender = request.Gender,
+                DateOfBirth = registryRecord.DateOfBirth,
+                Gender = registryRecord.Gender,
+                FullNameAr = registryRecord.FullNameAr,
+                FullNameEn = registryRecord.FullNameEn,
                 PhoneNumber = request.PhoneNumber.Trim(),
                 Address = request.Address,
                 JobTitle = request.JobTitle,
@@ -133,7 +145,7 @@ namespace QatratHayat.Infrastructure.Services
             var donorProfile = new DonorProfile
             {
                 UserId = user.Id,
-                BloodType = request.BloodType,
+                BloodType = registryRecord.BloodType,
                 BloodTypeStatus = BloodTypeStatus.Provisional,
                 EligibilityStatus = EligibilityStatus.Eligible,
                 DonationCount = 0,
@@ -181,7 +193,7 @@ namespace QatratHayat.Infrastructure.Services
             // 2.Check User
             if (user is null)
                 throw new UnauthorizedException(
-                    "Invalid email/National ID or password.",
+                    "Invalid National ID or password.",
                     ErrorCodes.AuthInvalidCredentials
                 );
 
@@ -203,25 +215,8 @@ namespace QatratHayat.Infrastructure.Services
             //5. Bring The Role
             var roleNames = await userManager.GetRolesAsync(user);
 
-            // check roleNames if is null
-            if (roleNames is null || roleNames.Count == 0)
-                throw new BadRequestException(
-                    "User role is not assigned.",
-                    ErrorCodes.UserRoleNotAssigned
-                );
             //6. Convert Role Names To UserRole Enum
-            var parsedRoles = new List<UserRole>();
-
-            foreach (var roleName in roleNames)
-            {
-                if (!Enum.TryParse<UserRole>(roleName, out var parsedRole))
-                    throw new BadRequestException(
-                        $"User role '{roleName}' is invalid.",
-                        ErrorCodes.UserRoleInvalid
-                    );
-
-                parsedRoles.Add(parsedRole);
-            }
+            var parsedRoles = ParseRoles(roleNames);
 
             //7. Bring The bloodType
             var donorProfile = await context
@@ -244,22 +239,31 @@ namespace QatratHayat.Infrastructure.Services
                 user.FullNameEn,
                 parsedRoles,
                 user.BranchId,
-                user.HospitalId
+                user.HospitalId,
+                request.RememberMe
             );
 
             //9. Returne AuthResponse
             return new LoginResponseDto
             {
                 UserId = user.Id,
+                NationalId = user.NationalId,
                 Email = user.Email!,
                 FullNameAr = user.FullNameAr,
                 FullNameEn = user.FullNameEn,
                 Roles = parsedRoles,
                 DateOfBirth = user.DateOfBirth,
-                BloodType = bloodType,
+                BloodType = donorProfile.BloodType,
                 Gender = user.Gender,
+                BranchId = user.BranchId,
+                HospitalId = user.HospitalId,
                 IsProfileCompleted = user.IsProfileCompleted,
-                Token = token,
+                IsActive = user.IsActive,
+                IsDeleted = user.IsDeleted,
+                CreatedAt = user.CreatedAt,
+                UpdatedAt = user.UpdatedAt,
+                PhoneNumber = user.PhoneNumber ?? string.Empty,
+                Token = token
             };
         }
 
@@ -295,25 +299,8 @@ namespace QatratHayat.Infrastructure.Services
             //3. Bring The Role
             var roleNames = await userManager.GetRolesAsync(user);
 
-            // check roleNames if is null
-            if (roleNames is null || roleNames.Count == 0)
-                throw new BadRequestException(
-                    "User role is not assigned.",
-                    ErrorCodes.UserRoleNotAssigned
-                );
             //4. Convert Role Names To UserRole Enum
-            var parsedRoles = new List<UserRole>();
-
-            foreach (var roleName in roleNames)
-            {
-                if (!Enum.TryParse<UserRole>(roleName, out var parsedRole))
-                    throw new BadRequestException(
-                        $"User role '{roleName}' is invalid.",
-                        ErrorCodes.UserRoleInvalid
-                    );
-
-                parsedRoles.Add(parsedRole);
-            }
+            var parsedRoles = ParseRoles(roleNames);
             //5. Bring The bloodType
             var donorProfile = await context
                 .DonorProfiles.AsNoTracking()
@@ -331,15 +318,283 @@ namespace QatratHayat.Infrastructure.Services
             return new CurrentUserDto
             {
                 UserId = user.Id,
+                NationalId = user.NationalId,
                 Email = user.Email!,
                 FullNameAr = user.FullNameAr,
                 FullNameEn = user.FullNameEn,
                 Roles = parsedRoles,
                 DateOfBirth = user.DateOfBirth,
-                BloodType = bloodType,
+                BloodType = donorProfile.BloodType,
                 Gender = user.Gender,
+                BranchId = user.BranchId,
+                HospitalId = user.HospitalId,
                 IsProfileCompleted = user.IsProfileCompleted,
+                IsActive = user.IsActive,
+                IsDeleted = user.IsDeleted,
+                CreatedAt = user.CreatedAt,
+                UpdatedAt = user.UpdatedAt,
+                PhoneNumber = user.PhoneNumber ?? string.Empty
             };
+        }
+
+        //forgot password
+        public async Task<ForgotPasswordResponseDto> ForgotPasswordAsync(ForgotPasswordRequestDto request)
+        {
+            var email = request.Email.Trim();
+
+            var genericMessage = "If the email exists, a verification code has been sent.";
+
+            var user = await userManager.FindByEmailAsync(email);
+
+            // Do not reveal whether the email exists or not.
+            if (user is null || !user.IsActive || user.IsDeleted)
+            {
+                return new ForgotPasswordResponseDto
+                {
+                    Message = genericMessage
+                };
+            }
+
+            // Invalidate old unused OTPs for this user.
+            var oldOtps = await context.PasswordResetOtps
+                .Where(x => x.UserId == user.Id && !x.IsUsed)
+                .ToListAsync();
+
+            foreach (var oldOtp in oldOtps)
+            {
+                oldOtp.IsUsed = true;
+                oldOtp.UsedAt = DateTime.UtcNow;
+            }
+
+            var otp = GenerateSixDigitOtp();
+
+            var passwordResetOtp = new PasswordResetOtp
+            {
+                UserId = user.Id,
+                OtpHash = HashOtp(otp),
+                ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                FailedAttempts = 0,
+                IsVerified = false,
+                IsUsed = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await context.PasswordResetOtps.AddAsync(passwordResetOtp);
+            await context.SaveChangesAsync();
+
+            await emailService.SendPasswordResetOtpAsync(
+                user.Email!,
+                user.FullNameEn,
+                otp
+            );
+
+            return new ForgotPasswordResponseDto
+            {
+                Message = genericMessage
+            };
+        }
+        public async Task<VerifyResetOtpResponseDto> VerifyResetOtpAsync(VerifyResetOtpRequestDto request)
+        {
+            var email = request.Email.Trim();
+            var otp = request.Otp.Trim();
+
+            var user = await userManager.FindByEmailAsync(email);
+
+            if (user is null || !user.IsActive || user.IsDeleted)
+            {
+                throw new BadRequestException(
+                    "Invalid or expired verification code.",
+                    ErrorCodes.InvalidOrExpiredOtp
+                );
+            }
+
+            var otpHash = HashOtp(otp);
+
+            var otpRecord = await context.PasswordResetOtps
+                .Where(x =>
+                    x.UserId == user.Id &&
+                    !x.IsUsed &&
+                    !x.IsVerified)
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (otpRecord is null)
+            {
+                throw new BadRequestException(
+                    "Invalid or expired verification code.",
+                    ErrorCodes.InvalidOrExpiredOtp
+                );
+            }
+
+            if (otpRecord.ExpiresAt < DateTime.UtcNow)
+            {
+                otpRecord.IsUsed = true;
+                otpRecord.UsedAt = DateTime.UtcNow;
+                await context.SaveChangesAsync();
+
+                throw new BadRequestException(
+                    "Verification code has expired.",
+                    ErrorCodes.OtpExpired
+                );
+            }
+
+            if (otpRecord.FailedAttempts >= 5)
+            {
+                otpRecord.IsUsed = true;
+                otpRecord.UsedAt = DateTime.UtcNow;
+                await context.SaveChangesAsync();
+
+                throw new BadRequestException(
+                    "Too many invalid attempts. Please request a new code.",
+                    ErrorCodes.OtpTooManyAttempts
+                );
+            }
+
+            if (otpRecord.OtpHash != otpHash)
+            {
+                otpRecord.FailedAttempts++;
+                await context.SaveChangesAsync();
+
+                throw new BadRequestException(
+                    "Invalid verification code.",
+                    ErrorCodes.InvalidOtp
+                );
+            }
+
+            var resetSessionToken = GenerateResetSessionToken();
+
+            otpRecord.IsVerified = true;
+            otpRecord.VerifiedAt = DateTime.UtcNow;
+            otpRecord.ResetSessionToken = resetSessionToken;
+
+            await context.SaveChangesAsync();
+
+            return new VerifyResetOtpResponseDto
+            {
+                ResetSessionToken = resetSessionToken,
+                Message = "Verification code confirmed successfully."
+            };
+        }
+        public async Task<ResetPasswordResponseDto> ResetPasswordAsync(ResetPasswordRequestDto request)
+        {
+            if (request.NewPassword != request.ConfirmNewPassword)
+            {
+                throw new BadRequestException(
+                    "New password and confirmation password do not match.",
+                    ErrorCodes.PasswordConfirmationMismatch
+                );
+            }
+
+            var email = request.Email.Trim();
+            var resetSessionToken = request.ResetSessionToken.Trim();
+
+            var user = await userManager.FindByEmailAsync(email);
+
+            if (user is null || !user.IsActive || user.IsDeleted)
+            {
+                throw new BadRequestException(
+                    "Invalid password reset request.",
+                    ErrorCodes.InvalidPasswordResetRequest
+                );
+            }
+
+            var otpRecord = await context.PasswordResetOtps
+                .Where(x =>
+                    x.UserId == user.Id &&
+                    x.IsVerified &&
+                    !x.IsUsed &&
+                    x.ResetSessionToken == resetSessionToken)
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (otpRecord is null)
+            {
+                throw new BadRequestException(
+                    "Invalid password reset request.",
+                    ErrorCodes.InvalidPasswordResetRequest
+                );
+            }
+
+            if (otpRecord.ExpiresAt < DateTime.UtcNow)
+            {
+                otpRecord.IsUsed = true;
+                otpRecord.UsedAt = DateTime.UtcNow;
+                await context.SaveChangesAsync();
+
+                throw new BadRequestException(
+                    "Password reset session has expired.",
+                    ErrorCodes.PasswordResetSessionExpired
+                );
+            }
+
+            var identityResetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+
+            var resetResult = await userManager.ResetPasswordAsync(
+                user,
+                identityResetToken,
+                request.NewPassword
+            );
+
+            if (!resetResult.Succeeded)
+            {
+                throw new BadRequestException(
+                    "Password reset failed.",
+                    ErrorCodes.PasswordResetFailed,
+                    resetResult.Errors.Select(x => x.Description).ToList()
+                );
+            }
+
+            otpRecord.IsUsed = true;
+            otpRecord.UsedAt = DateTime.UtcNow;
+
+            await context.SaveChangesAsync();
+
+            return new ResetPasswordResponseDto
+            {
+                Message = "Password has been reset successfully."
+            };
+        }
+        //helpers
+        private static List<UserRole> ParseRoles(IList<string> roleNames)
+        {
+            if (roleNames is null || roleNames.Count == 0)
+                throw new BadRequestException(
+                    "User role is not assigned.",
+                    ErrorCodes.UserRoleNotAssigned
+                );
+
+            var parsedRoles = new List<UserRole>();
+
+            foreach (var roleName in roleNames)
+            {
+                if (!Enum.TryParse<UserRole>(roleName, out var parsedRole))
+                    throw new BadRequestException(
+                        $"User role '{roleName}' is invalid.",
+                        ErrorCodes.UserRoleInvalid
+                    );
+
+                parsedRoles.Add(parsedRole);
+            }
+
+            return parsedRoles;
+        }
+        private static string GenerateSixDigitOtp()
+        {
+            return RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+        }
+
+        private static string HashOtp(string otp)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(otp));
+            return Convert.ToBase64String(bytes);
+        }
+
+        private static string GenerateResetSessionToken()
+        {
+            return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64))
+                .Replace("+", "")
+                .Replace("/", "")
+                .Replace("=", "");
         }
     }
 }

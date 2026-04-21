@@ -740,9 +740,9 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
 
             return new UsersStatisticsResponseDto
             {
-                TotalUsers = totalUsers,
+                TotalUsers = totalUsers + totalStaff,
                 TotalStaff = totalStaff,
-                TotalCitizens = totalCitizens,
+                TotalCitizens = totalCitizens + totalStaff,
                 LastUpdate = lastUpdate
             };
         }
