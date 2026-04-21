@@ -11,6 +11,7 @@ namespace QatratHayat.Application.Features.Auth.Interfaces
            string fullNameEn,
            List<UserRole> roles,
            int? branchId,
-           int? hospitalId);
+           int? hospitalId,
+           bool rememberMe);
     }
 }

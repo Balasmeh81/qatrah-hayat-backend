@@ -42,5 +42,30 @@ namespace QatratHayat.API.Controllers.AuthControllers
             var result = await accountService.GetCurrentUserAsync(User);
             return Ok(result);
         }
+
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult<ForgotPasswordResponseDto>> ForgotPassword(
+    ForgotPasswordRequestDto request)
+        {
+            var result = await accountService.ForgotPasswordAsync(request);
+            return Ok(result);
+        }
+
+        [HttpPost("verify-reset-otp")]
+        public async Task<ActionResult<VerifyResetOtpResponseDto>> VerifyResetOtp(
+            VerifyResetOtpRequestDto request)
+        {
+            var result = await accountService.VerifyResetOtpAsync(request);
+            return Ok(result);
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<ActionResult<ResetPasswordResponseDto>> ResetPassword(
+            ResetPasswordRequestDto request)
+        {
+            var result = await accountService.ResetPasswordAsync(request);
+            return Ok(result);
+        }
+
     }
 }

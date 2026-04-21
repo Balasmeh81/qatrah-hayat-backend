@@ -24,15 +24,30 @@ namespace QatratHayat.Infrastructure.Identity
             string fullNameEn,
             List<UserRole> roles,
             int? branchId,
-            int? hospitalId)
+            int? hospitalId,
+            bool rememberMe)
         {
             // Read JWT settings from appsettings.json
             var jwtSection = _configuration.GetSection("Jwt");
 
-            var key = jwtSection["Key"]!;
-            var issuer = jwtSection["Issuer"]!;
-            var audience = jwtSection["Audience"]!;
-            var durationInMinutes = int.Parse(jwtSection["DurationInMinutes"]!);
+            var key = jwtSection["Key"];
+            var issuer = jwtSection["Issuer"];
+            var audience = jwtSection["Audience"];
+            if (string.IsNullOrWhiteSpace(key))
+                throw new InvalidOperationException("JWT key is missing.");
+
+            if (string.IsNullOrWhiteSpace(issuer))
+                throw new InvalidOperationException("JWT issuer is missing.");
+
+            if (string.IsNullOrWhiteSpace(audience))
+                throw new InvalidOperationException("JWT audience is missing.");
+
+            var normalDurationInMinutes = int.Parse(jwtSection["DurationInMinutes"]!);
+            var rememberMeDurationInDays = int.Parse(jwtSection["RememberMeDurationInDays"]!);
+
+            var expiresAt = rememberMe
+                ? DateTime.UtcNow.AddDays(rememberMeDurationInDays)
+                : DateTime.UtcNow.AddMinutes(normalDurationInMinutes);
 
             var claims = new List<Claim>
             {
@@ -62,11 +77,12 @@ namespace QatratHayat.Infrastructure.Identity
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
             // Build the JWT token with issuer, audience, claims, expiration, and signature.
             var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(durationInMinutes),
-                signingCredentials: credentials);
+               issuer: issuer,
+               audience: audience,
+               claims: claims,
+               expires: expiresAt,
+               signingCredentials: credentials
+           );
             // Convert token object to string form and return it.
             return new JwtSecurityTokenHandler().WriteToken(token);
         }

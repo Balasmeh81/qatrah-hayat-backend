@@ -37,6 +37,15 @@
         public const string UserRoleInvalid = "USER_ROLE_INVALID";
         public const string DonorProfileNotFound = "DONOR_PROFILE_NOT_FOUND";
 
+        public const string InvalidOtp = "INVALID_OTP";
+        public const string OtpExpired = "OTP_EXPIRED";
+        public const string InvalidOrExpiredOtp = "INVALID_OR_EXPIRED_OTP";
+        public const string OtpTooManyAttempts = "OTP_TOO_MANY_ATTEMPTS";
+        public const string InvalidPasswordResetRequest = "INVALID_PASSWORD_RESET_REQUEST";
+        public const string PasswordResetSessionExpired = "PASSWORD_RESET_SESSION_EXPIRED";
+        public const string PasswordResetFailed = "PASSWORD_RESET_FAILED";
+        public const string EmailSendingFailed = "EMAIL_SENDING_FAILED";
+
         // Users Management
         public const string StaffUserNotFound = "STAFF_USER_NOT_FOUND";
         public const string CitizenUserNotFound = "CITIZEN_USER_NOT_FOUND";
