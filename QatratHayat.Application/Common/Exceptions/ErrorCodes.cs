@@ -25,6 +25,12 @@
         public const string NationalIdAlreadyRegistered = "NATIONAL_ID_ALREADY_REGISTERED";
         public const string EmailAlreadyRegistered = "EMAIL_ALREADY_REGISTERED";
         public const string NonJordanianCitizen = "NON_JORDANIAN_CITIZEN";
+        public const string EmailRequired = "EMAIL_REQUIRED";
+        public const string PhoneNumberRequired = "PHONE_NUMBER_REQUIRED";
+        public const string InvalidPhoneNumber = "INVALID_PHONE_NUMBER";
+        public const string PasswordRequired = "PASSWORD_REQUIRED";
+        public const string ConfirmPasswordRequired = "CONFIRM_PASSWORD_REQUIRED";
+        public const string PasswordConfirmationMismatch = "PASSWORD_CONFIRMATION_MISMATCH";
 
         public const string UserNotFound = "USER_NOT_FOUND";
         public const string UserRoleNotAssigned = "USER_ROLE_NOT_ASSIGNED";
@@ -34,6 +40,8 @@
         // Users Management
         public const string StaffUserNotFound = "STAFF_USER_NOT_FOUND";
         public const string CitizenUserNotFound = "CITIZEN_USER_NOT_FOUND";
+        public const string UserAlreadyExists = "USER_ALREADY_EXISTS";
+        public const string UserAlreadyStaff = "USER_ALREADY_STAFF";
 
         public const string UserIsNotStaff = "USER_IS_NOT_STAFF";
         public const string UserIsNotCitizen = "USER_IS_NOT_CITIZEN";
