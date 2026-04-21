@@ -5,14 +5,25 @@ namespace QatratHayat.Application.Features.UsersManagement.Interfaces
 {
     public interface IUsersManagementService
     {
+        // Statistics
+        Task<UsersStatisticsResponseDto> GetStatisticsAsync();
         // Staff Methods
         Task<StaffInfoResponseDto> GetStaffByIdAsync(int userId);
 
         Task<PagedResultDto<StaffInfoResponseDto>> GetAllStaffUsersAsync(UserManagementQueryDto query);
 
-        Task<StaffInfoResponseDto> AddStaffAsync(AddStaffRequestDto dto);
-
         Task<StaffInfoResponseDto> UpdateStaffAsync(int userId, UpdateStaffRequestDto dto);
+
+        Task<CitizenResponseDto> LookupCitizenByNationalIdAsync(string nationalId);
+
+        Task<StaffInfoResponseDto> CreateStaffFromNationalRegistryAsync(
+            CreateStaffFromRegistryRequestDto dto
+        );
+
+        Task<StaffInfoResponseDto> PromoteCitizenToStaffAsync(
+            int userId,
+            PromoteCitizenToStaffRequestDto dto
+        );
 
 
         // Citizen Methods
