@@ -419,13 +419,21 @@ namespace QatratHayat.Infrastructure.Services
 
             var user = await userManager.FindByEmailAsync(email);
 
-            if (user is null || !user.IsActive || user.IsDeleted)
+            if (user is null || user.IsDeleted)
             {
                 throw new BadRequestException(
-                    "Invalid or expired verification code.",
-                    ErrorCodes.InvalidOrExpiredOtp
+                   "User Not Found", ErrorCodes.UserNotFound
                 );
             }
+
+            if (!user.IsActive)
+            {
+                throw new UnauthorizedException(
+                  "This account is inactive.",
+                  ErrorCodes.AuthAccountInactive
+              );
+            }
+
 
             var otpHash = HashOtp(otp);
 
@@ -441,7 +449,7 @@ namespace QatratHayat.Infrastructure.Services
             {
                 throw new BadRequestException(
                     "Invalid or expired verification code.",
-                    ErrorCodes.InvalidOrExpiredOtp
+                    ErrorCodes.InvalidOtp
                 );
             }
 
@@ -565,6 +573,7 @@ namespace QatratHayat.Infrastructure.Services
 
             otpRecord.IsUsed = true;
             otpRecord.UsedAt = DateTime.UtcNow;
+            user.UpdatedAt = DateTime.UtcNow;
 
             await context.SaveChangesAsync();
 
