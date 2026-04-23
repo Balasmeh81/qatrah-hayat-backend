@@ -7,5 +7,6 @@ namespace QatratHayat.Application.Features.Auth.DTOs
         [Required]
         [EmailAddress]
         public string Email { get; set; } = null!;
+        public bool IsArabic { get; set; }
     }
 }

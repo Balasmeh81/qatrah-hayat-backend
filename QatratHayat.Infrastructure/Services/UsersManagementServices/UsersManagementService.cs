@@ -145,7 +145,7 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
             {
                 throw new ConflictException(
                     "Email is already used.",
-                    ErrorCodes.EmailAlreadyUsed
+                    ErrorCodes.EmailAlreadyRegistered
                 );
             }
 
@@ -448,7 +448,7 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
             {
                 throw new ConflictException(
                     "Email is already used by another user.",
-                    ErrorCodes.EmailAlreadyUsed
+                    ErrorCodes.EmailAlreadyRegistered
                 );
             }
 
@@ -588,7 +588,7 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
             {
                 throw new ConflictException(
                     "Email is already used by another user.",
-                    ErrorCodes.EmailAlreadyUsed
+                    ErrorCodes.EmailAlreadyRegistered
                 );
             }
 
