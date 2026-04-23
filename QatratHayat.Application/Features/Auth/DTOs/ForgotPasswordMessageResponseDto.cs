@@ -1,6 +1,6 @@
 ﻿namespace QatratHayat.Application.Features.Auth.DTOs
 {
-    public class ForgotPasswordResponseDto
+    public class ForgotPasswordMessageResponseDto
     {
         public string Message { get; set; } = null!;
     }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QatratHayat.Application.Common.Interfaces;
 using QatratHayat.Application.Features.Accounts.DTOs;
 using QatratHayat.Application.Features.Auth.DTOs;
 using QatratHayat.Application.Features.Auth.Interfaces;
@@ -17,14 +18,18 @@ namespace QatratHayat.API.Controllers.AuthControllers
         {
             accountService = _accountService;
         }
+
         // POST: api/Auth/register
         // Creates a new citizen account, then returns user data + JWT token.
         [HttpPost("registerCitizen")]
-        public async Task<ActionResult<RegisterResponseDto>> RegisterCitizenAsync(RegisterRequestDto request)
+        public async Task<ActionResult<RegisterResponseDto>> RegisterCitizenAsync(
+            RegisterRequestDto request
+        )
         {
             var result = await accountService.RegisterCitizenAsync(request);
             return Ok(result);
         }
+
         // POST: api/Auth/login
         // Logs in the user using email or national ID, then returns user data + JWT token.
         [HttpPost("login")]
@@ -33,6 +38,7 @@ namespace QatratHayat.API.Controllers.AuthControllers
             var result = await accountService.LoginAsync(request);
             return Ok(result);
         }
+
         // POST: api/Auth/login
         // Logs in the user using  national ID, then returns user data + JWT token.
         [Authorize]
@@ -44,8 +50,9 @@ namespace QatratHayat.API.Controllers.AuthControllers
         }
 
         [HttpPost("forgot-password")]
-        public async Task<ActionResult<ForgotPasswordResponseDto>> ForgotPassword(
-    ForgotPasswordRequestDto request)
+        public async Task<ActionResult<ForgotPasswordMessageResponseDto>> ForgotPassword(
+            ForgotPasswordRequestDto request
+        )
         {
             var result = await accountService.ForgotPasswordAsync(request);
             return Ok(result);
@@ -53,19 +60,31 @@ namespace QatratHayat.API.Controllers.AuthControllers
 
         [HttpPost("verify-reset-otp")]
         public async Task<ActionResult<VerifyResetOtpResponseDto>> VerifyResetOtp(
-            VerifyResetOtpRequestDto request)
+            VerifyResetOtpRequestDto request
+        )
         {
             var result = await accountService.VerifyResetOtpAsync(request);
             return Ok(result);
         }
 
         [HttpPost("reset-password")]
-        public async Task<ActionResult<ResetPasswordResponseDto>> ResetPassword(
-            ResetPasswordRequestDto request)
+        public async Task<ActionResult<ForgotPasswordMessageResponseDto>> ResetPassword(
+            ResetPasswordRequestDto request
+        )
         {
             var result = await accountService.ResetPasswordAsync(request);
             return Ok(result);
         }
 
+        [HttpPost("test-email")]
+        public async Task<IActionResult> TestEmail(
+            [FromServices] IEmailService emailService,
+            [FromBody] string email
+        )
+        {
+            await emailService.SendPasswordResetOtpAsync(email, "Test User", "123456", false);
+
+            return Ok(new { message = "Test email sent successfully." });
+        }
     }
 }

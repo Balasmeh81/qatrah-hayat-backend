@@ -6,6 +6,7 @@
             string toEmail,
             string fullName,
             string otp,
+            bool isArabic,
             CancellationToken cancellationToken = default
         );
     }

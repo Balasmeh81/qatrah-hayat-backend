@@ -45,7 +45,7 @@ namespace QatratHayat.Infrastructure.Services
             {
                 throw new BadRequestException(
                     "Terms agreement and information confirmation are required.",
-                    ErrorCodes.ValidationError
+                    ErrorCodes.TermsAndConditionsRequired
                 );
             }
 
@@ -93,7 +93,21 @@ namespace QatratHayat.Infrastructure.Services
                     ErrorCodes.EmailAlreadyRegistered
                 );
 
-            //5. Create User
+            // 5. Check if the phone number is already registered
+            var phoneNumber = request.PhoneNumber.Trim();
+
+            var existingUserByPhone = await context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.PhoneNumber == phoneNumber);
+
+            if (existingUserByPhone is not null)
+            {
+                throw new ConflictException(
+                    "Phone number is already registered.",
+                    ErrorCodes.PhoneNumberAlreadyRegistered
+                );
+            }
+            //6. Create User
             var user = new ApplicationUser
             {
                 UserName = email,
@@ -117,7 +131,7 @@ namespace QatratHayat.Infrastructure.Services
             // and donor profile creation are treated as one logical unit.
             using var transaction = await context.Database.BeginTransactionAsync();
 
-            //6. Create Official User and Insert to DB
+            //7. Create Official User and Insert to DB
             var createResult = await userManager.CreateAsync(user, request.Password);
 
             if (!createResult.Succeeded)
@@ -129,7 +143,7 @@ namespace QatratHayat.Infrastructure.Services
                 );
             }
 
-            //7. Give The User Role
+            //8. Give The User Role
             var roleResult = await userManager.AddToRoleAsync(user, UserRole.Citizen.ToString());
 
             if (!roleResult.Succeeded)
@@ -141,7 +155,7 @@ namespace QatratHayat.Infrastructure.Services
                 );
             }
 
-            //8. Create Donor Profile
+            //9. Create Donor Profile
             var donorProfile = new DonorProfile
             {
                 UserId = user.Id,
@@ -159,7 +173,7 @@ namespace QatratHayat.Infrastructure.Services
 
             await transaction.CommitAsync();
 
-            //9. Returne RegisterResponseDto
+            //10. Returne RegisterResponseDto
             return new RegisterResponseDto
             {
                 UserId = user.Id,
@@ -338,22 +352,26 @@ namespace QatratHayat.Infrastructure.Services
         }
 
         //forgot password
-        public async Task<ForgotPasswordResponseDto> ForgotPasswordAsync(ForgotPasswordRequestDto request)
+        public async Task<ForgotPasswordMessageResponseDto> ForgotPasswordAsync(ForgotPasswordRequestDto request)
         {
             var email = request.Email.Trim();
 
-            var genericMessage = "If the email exists, a verification code has been sent.";
+            var genericMessage = "A verification code has been sent.";
 
             var user = await userManager.FindByEmailAsync(email);
 
             // Do not reveal whether the email exists or not.
-            if (user is null || !user.IsActive || user.IsDeleted)
+            if (user is null)
             {
-                return new ForgotPasswordResponseDto
-                {
-                    Message = genericMessage
-                };
+                throw new BadRequestException(
+                    "User Not Found", ErrorCodes.EmailSendingFailed);
+
             }
+            if (!user.IsActive || user.IsDeleted)
+                throw new UnauthorizedException(
+                    "This account is inactive.",
+                    ErrorCodes.AuthAccountInactive
+                );
 
             // Invalidate old unused OTPs for this user.
             var oldOtps = await context.PasswordResetOtps
@@ -381,14 +399,15 @@ namespace QatratHayat.Infrastructure.Services
 
             await context.PasswordResetOtps.AddAsync(passwordResetOtp);
             await context.SaveChangesAsync();
-
+            string userName = request.IsArabic ? user.FullNameAr : user.FullNameEn;
             await emailService.SendPasswordResetOtpAsync(
                 user.Email!,
-                user.FullNameEn,
-                otp
+                userName,
+                otp,
+                request.IsArabic
             );
 
-            return new ForgotPasswordResponseDto
+            return new ForgotPasswordMessageResponseDto
             {
                 Message = genericMessage
             };
@@ -475,7 +494,7 @@ namespace QatratHayat.Infrastructure.Services
                 Message = "Verification code confirmed successfully."
             };
         }
-        public async Task<ResetPasswordResponseDto> ResetPasswordAsync(ResetPasswordRequestDto request)
+        public async Task<ForgotPasswordMessageResponseDto> ResetPasswordAsync(ResetPasswordRequestDto request)
         {
             if (request.NewPassword != request.ConfirmNewPassword)
             {
@@ -549,7 +568,7 @@ namespace QatratHayat.Infrastructure.Services
 
             await context.SaveChangesAsync();
 
-            return new ResetPasswordResponseDto
+            return new ForgotPasswordMessageResponseDto
             {
                 Message = "Password has been reset successfully."
             };
