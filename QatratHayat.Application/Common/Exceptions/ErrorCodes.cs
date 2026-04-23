@@ -42,7 +42,6 @@
         //Forgot Password Errors
         public const string InvalidOtp = "INVALID_OTP";
         public const string OtpExpired = "OTP_EXPIRED";
-        public const string InvalidOrExpiredOtp = "INVALID_OR_EXPIRED_OTP";
         public const string OtpTooManyAttempts = "OTP_TOO_MANY_ATTEMPTS";
         public const string InvalidPasswordResetRequest = "INVALID_PASSWORD_RESET_REQUEST";
         public const string PasswordResetSessionExpired = "PASSWORD_RESET_SESSION_EXPIRED";
