@@ -246,7 +246,7 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
 
             ValidateStaffRole(dto.StaffRole);
 
-            await ValidateStaffLocationAsync(dto.StaffRole, dto.BranchId, dto.HospitalId);
+            //await ValidateStaffLocationAsync(dto.StaffRole, dto.BranchId, dto.HospitalId);
 
             var user = await GetUserBaseQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
@@ -418,7 +418,7 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
         {
             ValidateStaffRole(dto.StaffRole);
 
-            await ValidateStaffLocationAsync(dto.StaffRole, dto.BranchId, dto.HospitalId);
+            //await ValidateStaffLocationAsync(dto.StaffRole, dto.BranchId, dto.HospitalId);
 
             var user = await GetUserBaseQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);

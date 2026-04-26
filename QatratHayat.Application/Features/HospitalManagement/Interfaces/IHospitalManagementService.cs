@@ -1,5 +1,4 @@
 ﻿using QatratHayat.Application.Common.DTOS;
-using QatratHayat.Application.Features.HospitalManagement.DOTS;
 using QatratHayat.Application.Features.HospitalManagement.DTOS;
 
 namespace QatratHayat.Application.Features.HospitalManagement.Interfaces
@@ -9,6 +8,10 @@ namespace QatratHayat.Application.Features.HospitalManagement.Interfaces
         Task<PagedResultDto<HospitalResponseDto>> GetAllHospitalsAsync(HospitalQueryDto query);
 
         Task<HospitalResponseDto> GetHospitalByIdAsync(int hospitalId);
+
+        Task<HospitalStatisticsResponseDto> GetStatisticsAsync();
+
+        Task<List<AvailableDoctorDto>> GetAvailableDoctorsAsync(int? currentHospitalId = null);
 
         Task<HospitalResponseDto> AddHospitalAsync(AddHospitalRequestDto request);
 

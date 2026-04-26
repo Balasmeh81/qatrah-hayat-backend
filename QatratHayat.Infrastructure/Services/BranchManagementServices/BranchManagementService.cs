@@ -18,7 +18,8 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
         public BranchManagementService(
             AppDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager
+        )
         {
             _context = context;
             _userManager = userManager;
@@ -28,12 +29,14 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
         // Get All Branches
         // ============================================================
 
-        public async Task<PagedResultDto<BranchResponseDto>> GetAllBranchesAsync(BranchQueryDto query)
+        public async Task<PagedResultDto<BranchResponseDto>> GetAllBranchesAsync(
+            BranchQueryDto query
+        )
         {
             NormalizePaging(query);
 
-            var branchesQuery = _context.Branches
-                .AsNoTracking()
+            var branchesQuery = _context
+                .Branches.AsNoTracking()
                 .Where(b => !b.IsDeleted)
                 .AsQueryable();
 
@@ -42,12 +45,13 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
                 var searchTerm = query.SearchTerm.Trim();
 
                 branchesQuery = branchesQuery.Where(b =>
-                    b.BranchNameAr.Contains(searchTerm) ||
-                    b.BranchNameEn.Contains(searchTerm) ||
-                    b.AddressAr.Contains(searchTerm) ||
-                    b.AddressEn.Contains(searchTerm) ||
-                    (b.Email != null && b.Email.Contains(searchTerm)) ||
-                    (b.Phone != null && b.Phone.Contains(searchTerm)));
+                    b.BranchNameAr.Contains(searchTerm)
+                    || b.BranchNameEn.Contains(searchTerm)
+                    || b.AddressAr.Contains(searchTerm)
+                    || b.AddressEn.Contains(searchTerm)
+                    || (b.Email != null && b.Email.Contains(searchTerm))
+                    || (b.Phone != null && b.Phone.Contains(searchTerm))
+                );
             }
 
             if (query.IsActive.HasValue)
@@ -58,7 +62,7 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
             var totalCount = await branchesQuery.CountAsync();
 
             var branches = await branchesQuery
-                .OrderByDescending(b => b.CreatedAt)
+                .OrderByDescending(b => b.UpdatedAt ?? b.CreatedAt)
                 .Skip((query.PageNumber - 1) * query.PageSize)
                 .Take(query.PageSize)
                 .ToListAsync();
@@ -70,7 +74,75 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
                 Items = items,
                 PageNumber = query.PageNumber,
                 PageSize = query.PageSize,
-                TotalCount = totalCount
+                TotalCount = totalCount,
+            };
+        }
+        // ============================================================
+        // Get Available Branch Managers
+        // ============================================================
+
+        public async Task<List<AvailableBranchManagerDto>> GetAvailableManagersAsync(
+            int? currentBranchId = null)
+        {
+            var branchManagerRoleName = UserRole.BranchManager.ToString();
+
+            var managersQuery =
+                from user in _context.Users.AsNoTracking()
+                join userRole in _context.UserRoles.AsNoTracking()
+                    on user.Id equals userRole.UserId
+                join role in _context.Roles.AsNoTracking()
+                    on userRole.RoleId equals role.Id
+                where role.Name == branchManagerRoleName
+                      && user.IsActive
+                      && !user.IsDeleted
+                select user;
+
+            var assignedManagerIdsQuery = _context.Branches
+                .AsNoTracking()
+                .Where(b =>
+                    !b.IsDeleted &&
+                    (!currentBranchId.HasValue || b.Id != currentBranchId.Value))
+                .Select(b => b.ManagerUserId);
+
+            var availableManagers = await managersQuery
+                .Where(user => !assignedManagerIdsQuery.Contains(user.Id))
+                .OrderBy(user => user.FullNameEn)
+                .Select(user => new AvailableBranchManagerDto
+                {
+                    UserId = user.Id,
+                    FullNameAr = user.FullNameAr,
+                    FullNameEn = user.FullNameEn,
+                })
+                .ToListAsync();
+
+            return availableManagers;
+        }
+
+        // ============================================================
+        // Get Branch Statistics
+        // ============================================================
+
+        public async Task<BranchStatisticsResponseDto> GetStatisticsAsync()
+        {
+            var branchesQuery = _context.Branches.AsNoTracking().Where(b => !b.IsDeleted);
+
+            var totalBranches = await branchesQuery.CountAsync();
+
+            var activeBranches = await branchesQuery.CountAsync(b => b.IsActive);
+
+            var inactiveBranches = await branchesQuery.CountAsync(b => !b.IsActive);
+
+            var lastUpdate = await branchesQuery
+                .OrderByDescending(b => b.UpdatedAt ?? b.CreatedAt)
+                .Select(b => (DateTime?)(b.UpdatedAt ?? b.CreatedAt))
+                .FirstOrDefaultAsync();
+
+            return new BranchStatisticsResponseDto
+            {
+                TotalBranches = totalBranches,
+                ActiveBranches = activeBranches,
+                InactiveBranches = inactiveBranches,
+                LastUpdate = lastUpdate,
             };
         }
 
@@ -80,16 +152,13 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
         public async Task<BranchResponseDto> GetBranchByIdAsync(int branchId)
         {
-            var branch = await _context.Branches
-                .AsNoTracking()
+            var branch = await _context
+                .Branches.AsNoTracking()
                 .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
 
             if (branch is null)
             {
-                throw new NotFoundException(
-                    "Branch was not found.",
-                    ErrorCodes.BranchNotFound
-                );
+                throw new NotFoundException("Branch was not found.", ErrorCodes.BranchNotFound);
             }
 
             return await MapBranchToDtoAsync(branch);
@@ -101,10 +170,7 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
         public async Task<BranchResponseDto> AddBranchAsync(AddBranchRequestDto request)
         {
-            await ValidateBranchNameUniquenessAsync(
-                request.BranchNameAr,
-                request.BranchNameEn
-            );
+            await ValidateBranchNameUniquenessAsync(request.BranchNameAr, request.BranchNameEn);
 
             var manager = await ValidateBranchManagerAsync(
                 request.ManagerUserId,
@@ -127,7 +193,7 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
                 IsActive = true,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = null
+                UpdatedAt = null,
             };
 
             _context.Branches.Add(branch);
@@ -141,8 +207,8 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
             await transaction.CommitAsync();
 
-            var createdBranch = await _context.Branches
-                .AsNoTracking()
+            var createdBranch = await _context
+                .Branches.AsNoTracking()
                 .FirstAsync(b => b.Id == branch.Id);
 
             return await MapBranchToDtoAsync(createdBranch);
@@ -154,17 +220,16 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
         public async Task<BranchResponseDto> UpdateBranchAsync(
             int branchId,
-            UpdateBranchRequestDto request)
+            UpdateBranchRequestDto request
+        )
         {
-            var branch = await _context.Branches
-                .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
+            var branch = await _context.Branches.FirstOrDefaultAsync(b =>
+                b.Id == branchId && !b.IsDeleted
+            );
 
             if (branch is null)
             {
-                throw new NotFoundException(
-                    "Branch was not found.",
-                    ErrorCodes.BranchNotFound
-                );
+                throw new NotFoundException("Branch was not found.", ErrorCodes.BranchNotFound);
             }
 
             await ValidateBranchNameUniquenessAsync(
@@ -196,8 +261,9 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
             if (oldManagerUserId != request.ManagerUserId)
             {
-                var oldManager = await _context.Users
-                    .FirstOrDefaultAsync(u => u.Id == oldManagerUserId);
+                var oldManager = await _context.Users.FirstOrDefaultAsync(u =>
+                    u.Id == oldManagerUserId
+                );
 
                 if (oldManager is not null && oldManager.BranchId == branch.Id)
                 {
@@ -213,8 +279,8 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
             await transaction.CommitAsync();
 
-            var updatedBranch = await _context.Branches
-                .AsNoTracking()
+            var updatedBranch = await _context
+                .Branches.AsNoTracking()
                 .FirstAsync(b => b.Id == branch.Id);
 
             return await MapBranchToDtoAsync(updatedBranch);
@@ -226,14 +292,23 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
         public async Task SoftDeleteBranchAsync(int branchId)
         {
-            var branch = await _context.Branches
-                .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
+            var branch = await _context.Branches.FirstOrDefaultAsync(b =>
+                b.Id == branchId && !b.IsDeleted
+            );
 
             if (branch is null)
             {
-                throw new NotFoundException(
-                    "Branch was not found.",
-                    ErrorCodes.BranchNotFound
+                throw new NotFoundException("Branch was not found.", ErrorCodes.BranchNotFound);
+            }
+            var hasHospitals = await _context.Hospitals.AnyAsync(h =>
+                h.BranchId == branchId && !h.IsDeleted
+            );
+
+            if (hasHospitals)
+            {
+                throw new ConflictException(
+                    "Branch cannot be deleted because it has linked hospitals.",
+                    ErrorCodes.BranchHasLinkedHospitals
                 );
             }
 
@@ -243,8 +318,9 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
             branch.IsActive = false;
             branch.UpdatedAt = DateTime.UtcNow;
 
-            var manager = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == branch.ManagerUserId);
+            var manager = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == branch.ManagerUserId
+            );
 
             if (manager is not null && manager.BranchId == branch.Id)
             {
@@ -263,15 +339,13 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
         public async Task ActivateBranchAsync(int branchId)
         {
-            var branch = await _context.Branches
-                .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
+            var branch = await _context.Branches.FirstOrDefaultAsync(b =>
+                b.Id == branchId && !b.IsDeleted
+            );
 
             if (branch is null)
             {
-                throw new NotFoundException(
-                    "Branch was not found.",
-                    ErrorCodes.BranchNotFound
-                );
+                throw new NotFoundException("Branch was not found.", ErrorCodes.BranchNotFound);
             }
 
             branch.IsActive = true;
@@ -286,15 +360,13 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
         public async Task DeactivateBranchAsync(int branchId)
         {
-            var branch = await _context.Branches
-                .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
+            var branch = await _context.Branches.FirstOrDefaultAsync(b =>
+                b.Id == branchId && !b.IsDeleted
+            );
 
             if (branch is null)
             {
-                throw new NotFoundException(
-                    "Branch was not found.",
-                    ErrorCodes.BranchNotFound
-                );
+                throw new NotFoundException("Branch was not found.", ErrorCodes.BranchNotFound);
             }
 
             branch.IsActive = false;
@@ -309,13 +381,12 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
         private async Task<ApplicationUser> ValidateBranchManagerAsync(
             int managerUserId,
-            int? excludedBranchId)
+            int? excludedBranchId
+        )
         {
-            var manager = await _context.Users
-                .FirstOrDefaultAsync(u =>
-                    u.Id == managerUserId &&
-                    u.IsActive &&
-                    !u.IsDeleted);
+            var manager = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == managerUserId && u.IsActive && !u.IsDeleted
+            );
 
             if (manager is null)
             {
@@ -334,12 +405,19 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
                     ErrorCodes.UserIsNotBranchManager
                 );
             }
+            if (manager.HospitalId.HasValue)
+            {
+                throw new BadRequestException(
+                    "Selected branch manager is already assigned to a hospital.",
+                    ErrorCodes.UserAlreadyAssignedToHospital
+                );
+            }
 
-            var isManagerAssignedToAnotherBranch = await _context.Branches
-                .AnyAsync(b =>
-                    b.ManagerUserId == managerUserId &&
-                    !b.IsDeleted &&
-                    (!excludedBranchId.HasValue || b.Id != excludedBranchId.Value));
+            var isManagerAssignedToAnotherBranch = await _context.Branches.AnyAsync(b =>
+                b.ManagerUserId == managerUserId
+                && !b.IsDeleted
+                && (!excludedBranchId.HasValue || b.Id != excludedBranchId.Value)
+            );
 
             if (isManagerAssignedToAnotherBranch)
             {
@@ -355,17 +433,17 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
         private async Task ValidateBranchNameUniquenessAsync(
             string branchNameAr,
             string branchNameEn,
-            int? excludedBranchId = null)
+            int? excludedBranchId = null
+        )
         {
             var normalizedNameAr = branchNameAr.Trim();
             var normalizedNameEn = branchNameEn.Trim();
 
-            var branchExists = await _context.Branches
-                .AnyAsync(b =>
-                    !b.IsDeleted &&
-                    (b.BranchNameAr == normalizedNameAr ||
-                     b.BranchNameEn == normalizedNameEn) &&
-                    (!excludedBranchId.HasValue || b.Id != excludedBranchId.Value));
+            var branchExists = await _context.Branches.AnyAsync(b =>
+                !b.IsDeleted
+                && (b.BranchNameAr == normalizedNameAr || b.BranchNameEn == normalizedNameEn)
+                && (!excludedBranchId.HasValue || b.Id != excludedBranchId.Value)
+            );
 
             if (branchExists)
             {
@@ -400,8 +478,8 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
         private async Task<BranchResponseDto> MapBranchToDtoAsync(Branch branch)
         {
-            var manager = await _context.Users
-                .AsNoTracking()
+            var manager = await _context
+                .Users.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == branch.ManagerUserId);
 
             return new BranchResponseDto
@@ -421,25 +499,22 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
                 GPSLng = branch.GPSLng,
                 Email = branch.Email,
                 Phone = branch.Phone,
-                UpdatedAt = branch.UpdatedAt
+                UpdatedAt = branch.UpdatedAt,
             };
         }
 
         private async Task<List<BranchResponseDto>> MapBranchesToDtosAsync(List<Branch> branches)
         {
-            var managerUserIds = branches
-                .Select(b => b.ManagerUserId)
-                .Distinct()
-                .ToList();
+            var managerUserIds = branches.Select(b => b.ManagerUserId).Distinct().ToList();
 
-            var managers = await _context.Users
-                .AsNoTracking()
+            var managers = await _context
+                .Users.AsNoTracking()
                 .Where(u => managerUserIds.Contains(u.Id))
                 .Select(u => new
                 {
                     u.Id,
                     u.FullNameAr,
-                    u.FullNameEn
+                    u.FullNameEn,
                 })
                 .ToDictionaryAsync(u => u.Id);
 
@@ -465,7 +540,7 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
                         GPSLng = branch.GPSLng,
                         Email = branch.Email,
                         Phone = branch.Phone,
-                        UpdatedAt = branch.UpdatedAt
+                        UpdatedAt = branch.UpdatedAt,
                     };
                 })
                 .ToList();

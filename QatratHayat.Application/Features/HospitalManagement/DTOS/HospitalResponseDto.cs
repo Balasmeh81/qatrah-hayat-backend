@@ -1,4 +1,4 @@
-﻿namespace QatratHayat.Application.Features.HospitalManagement.DOTS
+﻿namespace QatratHayat.Application.Features.HospitalManagement.DTOS
 {
     public class HospitalResponseDto
     {

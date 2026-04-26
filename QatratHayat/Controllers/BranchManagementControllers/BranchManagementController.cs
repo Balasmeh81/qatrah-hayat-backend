@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using QatratHayat.Application.Common.DTOS;
 using QatratHayat.Application.Features.BranchManagement.DTOS;
 using QatratHayat.Application.Features.BranchManagement.Interfaces;
@@ -7,8 +6,8 @@ using QatratHayat.Application.Features.BranchManagement.Interfaces;
 namespace QatratHayat.API.Controllers.Admin
 {
     [ApiController]
-    [Route("api/admin/branches")]
-    [Authorize(Roles = "Admin")]
+    [Route("api/branches-management")]
+    //[Authorize(Roles = "Admin")]
     public class BranchManagementController : ControllerBase
     {
         private readonly IBranchManagementService _branchManagementService;
@@ -27,6 +26,29 @@ namespace QatratHayat.API.Controllers.Admin
             [FromQuery] BranchQueryDto query)
         {
             var result = await _branchManagementService.GetAllBranchesAsync(query);
+
+            return Ok(result);
+        }
+        // ============================================================
+        // Get Branch Statistics
+        // ============================================================
+
+        [HttpGet("statistics")]
+        public async Task<ActionResult<BranchStatisticsResponseDto>> GetStatistics()
+        {
+            var result = await _branchManagementService.GetStatisticsAsync();
+
+            return Ok(result);
+        }
+        // ============================================================
+        // Get Available Branch Managers
+        // ============================================================
+
+        [HttpGet("available-managers")]
+        public async Task<ActionResult<List<AvailableBranchManagerDto>>> GetAvailableManagers(
+            [FromQuery] int? currentBranchId = null)
+        {
+            var result = await _branchManagementService.GetAvailableManagersAsync(currentBranchId);
 
             return Ok(result);
         }

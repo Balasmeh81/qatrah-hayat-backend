@@ -1,13 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using QatratHayat.Application.Common.DTOS;
-using QatratHayat.Application.Features.HospitalManagement.DOTS;
 using QatratHayat.Application.Features.HospitalManagement.DTOS;
 using QatratHayat.Application.Features.HospitalManagement.Interfaces;
 
 namespace QatratHayat.API.Controllers.Admin
 {
     [ApiController]
-    [Route("api/admin/hospitals")]
+    [Route("api/hospital-management")]
     //[Authorize(Roles = "Admin")]
     public class HospitalManagementController : ControllerBase
     {
@@ -28,6 +27,29 @@ namespace QatratHayat.API.Controllers.Admin
             [FromQuery] HospitalQueryDto query)
         {
             var result = await _hospitalManagementService.GetAllHospitalsAsync(query);
+
+            return Ok(result);
+        }
+        // ============================================================
+        // Get Available Doctors
+        // ============================================================
+
+        [HttpGet("available-doctors")]
+        public async Task<ActionResult<List<AvailableDoctorDto>>> GetAvailableDoctors(
+            [FromQuery] int? currentHospitalId = null)
+        {
+            var result = await _hospitalManagementService.GetAvailableDoctorsAsync(currentHospitalId);
+
+            return Ok(result);
+        }
+        // ============================================================
+        // Get Statistics
+        // ============================================================
+
+        [HttpGet("statistics")]
+        public async Task<ActionResult<HospitalStatisticsResponseDto>> GetStatistics()
+        {
+            var result = await _hospitalManagementService.GetStatisticsAsync();
 
             return Ok(result);
         }
