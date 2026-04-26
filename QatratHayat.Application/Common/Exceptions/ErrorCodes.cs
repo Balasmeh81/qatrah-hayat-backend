@@ -74,7 +74,6 @@
         public const string BranchRequiredForStaffRole = "BRANCH_REQUIRED_FOR_STAFF_ROLE";
         public const string HospitalRequiredForDoctor = "HOSPITAL_REQUIRED_FOR_DOCTOR";
 
-        public const string BranchNotFound = "BRANCH_NOT_FOUND";
         public const string HospitalNotFound = "HOSPITAL_NOT_FOUND";
 
         public const string DeletedUserCannotBePromoted = "DELETED_USER_CANNOT_BE_PROMOTED";
@@ -117,15 +116,16 @@
         //--------------------------------------------------------------
 
         // Branch Management
+        public const string BranchNotFound = "BRANCH_NOT_FOUND";
         public const string BranchAlreadyExists = "BRANCH_ALREADY_EXISTS";
 
         public const string BranchManagerNotFound = "BRANCH_MANAGER_NOT_FOUND";
         public const string UserIsNotBranchManager = "USER_IS_NOT_BRANCH_MANAGER";
         public const string BranchManagerAlreadyAssigned = "BRANCH_MANAGER_ALREADY_ASSIGNED";
-
+        public const string UserAlreadyAssignedToHospital = "USER_ALREADY_ASSIGNED_TO_HOSPITAL";
         public const string BranchCreationFailed = "BRANCH_CREATION_FAILED";
         public const string BranchUpdateFailed = "BRANCH_UPDATE_FAILED";
-
+        public const string BranchHasLinkedHospitals = "BRANCH_HAS_LINKED_HOSPITALS";
         //--------------------------------------------------------------
 
         // Hospital Management

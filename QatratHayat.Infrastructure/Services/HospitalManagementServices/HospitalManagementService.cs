@@ -1,10 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using QatratHayat.Application.Common.DTOS;
 using QatratHayat.Application.Common.Exceptions;
-using QatratHayat.Application.Features.HospitalManagement.DOTS;
 using QatratHayat.Application.Features.HospitalManagement.DTOS;
 using QatratHayat.Application.Features.HospitalManagement.Interfaces;
 using QatratHayat.Domain.Entities;
+using QatratHayat.Domain.Enums;
 using QatratHayat.Infrastructure.Persistence;
 
 namespace QatratHayat.Application.Features.HospitalManagement.Services
@@ -16,6 +16,66 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
         public HospitalManagementService(AppDbContext context)
         {
             _context = context;
+        }
+        // ============================================================
+        // Get Hospital Statistics
+        // ============================================================
+
+        public async Task<HospitalStatisticsResponseDto> GetStatisticsAsync()
+        {
+            var hospitalsQuery = _context.Hospitals
+                .AsNoTracking()
+                .Where(h => !h.IsDeleted);
+
+            return new HospitalStatisticsResponseDto
+            {
+                TotalHospitals = await hospitalsQuery.CountAsync(),
+
+                ActiveHospitals = await hospitalsQuery.CountAsync(h => h.IsActive),
+
+                InactiveHospitals = await hospitalsQuery.CountAsync(h => !h.IsActive),
+
+                LastUpdate = await hospitalsQuery
+                    .OrderByDescending(h => h.UpdatedAt ?? h.CreatedAt)
+                    .Select(h => (DateTime?)(h.UpdatedAt ?? h.CreatedAt))
+                    .FirstOrDefaultAsync()
+            };
+        }
+        // ============================================================
+        // Get Available Doctors
+        // ============================================================
+
+        public async Task<List<AvailableDoctorDto>> GetAvailableDoctorsAsync(
+            int? currentHospitalId = null)
+        {
+            var doctorRoleName = UserRole.Doctor.ToString();
+
+            var doctorsQuery =
+                from user in _context.Users.AsNoTracking()
+                join userRole in _context.UserRoles.AsNoTracking()
+                    on user.Id equals userRole.UserId
+                join role in _context.Roles.AsNoTracking()
+                    on userRole.RoleId equals role.Id
+                where role.Name == doctorRoleName
+                      && user.IsActive
+                      && !user.IsDeleted
+                      && (
+                          user.HospitalId == null ||
+                          (currentHospitalId.HasValue && user.HospitalId == currentHospitalId.Value)
+                      )
+                select user;
+
+            var availableDoctors = await doctorsQuery
+                .OrderBy(user => user.FullNameEn)
+                .Select(user => new AvailableDoctorDto
+                {
+                    UserId = user.Id,
+                    FullNameAr = user.FullNameAr,
+                    FullNameEn = user.FullNameEn,
+                })
+                .ToListAsync();
+
+            return availableDoctors;
         }
 
         // ============================================================

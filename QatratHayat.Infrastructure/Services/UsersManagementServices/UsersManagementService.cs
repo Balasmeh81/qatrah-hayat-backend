@@ -81,7 +81,6 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
                 DateOfBirth = registryCitizen.DateOfBirth,
                 BloodType = registryCitizen.BloodType,
                 Gender = registryCitizen.Gender,
-
                 IsUser = isUser,
                 IsStaff = isStaff,
                 UserId = existingUser?.Id
@@ -247,7 +246,7 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
 
             ValidateStaffRole(dto.StaffRole);
 
-            await ValidateStaffLocationAsync(dto.StaffRole, dto.BranchId, dto.HospitalId);
+            //await ValidateStaffLocationAsync(dto.StaffRole, dto.BranchId, dto.HospitalId);
 
             var user = await GetUserBaseQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
@@ -419,7 +418,7 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
         {
             ValidateStaffRole(dto.StaffRole);
 
-            await ValidateStaffLocationAsync(dto.StaffRole, dto.BranchId, dto.HospitalId);
+            //await ValidateStaffLocationAsync(dto.StaffRole, dto.BranchId, dto.HospitalId);
 
             var user = await GetUserBaseQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
@@ -733,10 +732,11 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
             var totalCitizens = await usersQuery
                 .CountAsync(u => !staffUserIds.Contains(u.Id));
 
-            var lastUpdate = await usersQuery
-                .OrderByDescending(u => u.UpdatedAt ?? u.CreatedAt)
-                .Select(u => (DateTime?)(u.UpdatedAt ?? u.CreatedAt))
-                .FirstOrDefaultAsync();
+            var lastUpdate = await _context.Users
+         .AsNoTracking()
+         .OrderByDescending(u => u.UpdatedAt ?? u.CreatedAt)
+         .Select(u => (DateTime?)(u.UpdatedAt ?? u.CreatedAt))
+         .FirstOrDefaultAsync();
 
             return new UsersStatisticsResponseDto
             {

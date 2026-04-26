@@ -12,7 +12,8 @@ namespace QatratHayat.Application.Features.BranchManagement.Interfaces
         Task<BranchResponseDto> AddBranchAsync(AddBranchRequestDto request);
 
         Task<BranchResponseDto> UpdateBranchAsync(int branchId, UpdateBranchRequestDto request);
-
+        Task<BranchStatisticsResponseDto> GetStatisticsAsync();
+        Task<List<AvailableBranchManagerDto>> GetAvailableManagersAsync(int? currentBranchId = null);
         Task SoftDeleteBranchAsync(int branchId);
 
         Task ActivateBranchAsync(int branchId);
