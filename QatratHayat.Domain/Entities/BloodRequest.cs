@@ -25,8 +25,8 @@ namespace QatratHayat.Domain.Entities
         [MaxLength(500)]
         public string? CancellationReason { get; set; }
         public DateTime? CancelledAt { get; set; }
-        public DateTime? ShortagePhase1At { get; set; }
-        public DateTime? ShortagePhase2At { get; set; }
+        public DateTime? PublishedAt { get; set; }
+        public int? PublishedByUserId { get; set; }
         public DateTime? UpdatedAt { get; set; }
 
         // Navigation Property
@@ -41,6 +41,10 @@ namespace QatratHayat.Domain.Entities
         [Required]
         public int HospitalId { get; set; }
         public Hospital Hospital { get; set; } = null!;
+
+        [Required]
+        public int BranchId { get; set; }
+        public Branch Branch { get; set; } = null!;
 
         [Required]
         public int RequesterUserId { get; set; }

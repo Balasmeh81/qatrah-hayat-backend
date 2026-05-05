@@ -49,5 +49,6 @@ namespace QatratHayat.Domain.Entities
         public ICollection<Campaign> Campaigns { get; set; } = new List<Campaign>();
         public ICollection<BloodUnit> BloodUnits { get; set; } = new List<BloodUnit>();
         public ICollection<Donation> Donations { get; set; } = new List<Donation>();
+        public ICollection<BloodRequest> BloodRequests { get; set; } = new List<BloodRequest>();
     }
 }
