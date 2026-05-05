@@ -250,6 +250,12 @@ namespace QatratHayat.Infrastructure.Persistence
                       .HasForeignKey(x => x.HospitalId)
                       .OnDelete(DeleteBehavior.Restrict);
 
+                // 1:N A branch can have many blood requests
+                entity.HasOne(x => x.Branch)
+                      .WithMany(x => x.BloodRequests)
+                      .HasForeignKey(x => x.BranchId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
                 // N:1 A request is approved/owned by one doctor
                 entity.HasOne<ApplicationUser>()
                       .WithMany()
@@ -286,6 +292,7 @@ namespace QatratHayat.Infrastructure.Persistence
             builder.Entity<BloodUnit>(entity =>
             {
                 entity.HasKey(x => x.Id);
+                entity.HasIndex(x => x.UnitCode).IsUnique();
 
                 // 1:N A request may have multiple units allocated
                 entity.HasOne(x => x.BloodRequest)
@@ -357,11 +364,13 @@ namespace QatratHayat.Infrastructure.Persistence
 
                 entity.HasIndex(x => x.ManagerUserId)
                       .IsUnique();
+
             });
             // BranchWorkingHour
             builder.Entity<BranchWorkingHour>(entity =>
             {
                 entity.HasKey(x => x.Id);
+                entity.HasIndex(x => new { x.BranchId, x.DayOfWeek }).IsUnique();
 
             });
 
