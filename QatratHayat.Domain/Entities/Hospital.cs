@@ -13,7 +13,7 @@ namespace QatratHayat.Domain.Entities
         public string HospitalNameEn { get; set; } = null!;
         [Required]
         [MaxLength(500)]
-        public string AddressAR { get; set; } = null!;
+        public string AddressAr { get; set; } = null!;
         [Required]
         [MaxLength(500)]
         public string AddressEn { get; set; } = null!;

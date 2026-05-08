@@ -135,5 +135,6 @@
         // Hospital Management
         public const string HospitalAlreadyExists = "HOSPITAL_ALREADY_EXISTS";
         public const string BranchInactiveOrNotFound = "BRANCH_INACTIVE_OR_NOT_FOUND";
+        public const string HospitalHasLinkedBloodRequests = "HOSPITAL_HAS_LINKED_BLOOD_REQUESTS";
     }
 }

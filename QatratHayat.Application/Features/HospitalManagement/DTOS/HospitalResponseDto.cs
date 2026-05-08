@@ -5,7 +5,7 @@
         public int Id { get; set; }
         public string HospitalNameAr { get; set; } = null!;
         public string HospitalNameEn { get; set; } = null!;
-        public string AddressAR { get; set; } = null!;
+        public string AddressAr { get; set; } = null!;
         public string AddressEn { get; set; } = null!;
         public bool IsActive { get; set; }
 

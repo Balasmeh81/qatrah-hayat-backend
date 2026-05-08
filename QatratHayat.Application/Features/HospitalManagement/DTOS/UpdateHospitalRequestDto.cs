@@ -14,7 +14,7 @@ namespace QatratHayat.Application.Features.HospitalManagement.DTOS
 
         [Required]
         [MaxLength(500)]
-        public string AddressAR { get; set; } = null!;
+        public string AddressAr { get; set; } = null!;
 
         [Required]
         [MaxLength(500)]
