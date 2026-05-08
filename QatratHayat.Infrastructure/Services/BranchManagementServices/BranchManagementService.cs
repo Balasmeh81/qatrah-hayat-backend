@@ -36,7 +36,9 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
             NormalizePaging(query);
 
             var branchesQuery = _context
-                .Branches.AsNoTracking()
+                .Branches
+                .AsNoTracking()
+                .Include(b => b.WorkingHours)
                 .Where(b => !b.IsDeleted)
                 .AsQueryable();
 
@@ -77,12 +79,14 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
                 TotalCount = totalCount,
             };
         }
+
         // ============================================================
         // Get Available Branch Managers
         // ============================================================
 
         public async Task<List<AvailableBranchManagerDto>> GetAvailableManagersAsync(
-            int? currentBranchId = null)
+            int? currentBranchId = null
+        )
         {
             var branchManagerRoleName = UserRole.BranchManager.ToString();
 
@@ -100,8 +104,9 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
             var assignedManagerIdsQuery = _context.Branches
                 .AsNoTracking()
                 .Where(b =>
-                    !b.IsDeleted &&
-                    (!currentBranchId.HasValue || b.Id != currentBranchId.Value))
+                    !b.IsDeleted
+                    && (!currentBranchId.HasValue || b.Id != currentBranchId.Value)
+                )
                 .Select(b => b.ManagerUserId);
 
             var availableManagers = await managersQuery
@@ -124,7 +129,10 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
         public async Task<BranchStatisticsResponseDto> GetStatisticsAsync()
         {
-            var branchesQuery = _context.Branches.AsNoTracking().Where(b => !b.IsDeleted);
+            var branchesQuery = _context
+                .Branches
+                .AsNoTracking()
+                .Where(b => !b.IsDeleted);
 
             var totalBranches = await branchesQuery.CountAsync();
 
@@ -153,12 +161,17 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
         public async Task<BranchResponseDto> GetBranchByIdAsync(int branchId)
         {
             var branch = await _context
-                .Branches.AsNoTracking()
+                .Branches
+                .AsNoTracking()
+                .Include(b => b.WorkingHours)
                 .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
 
             if (branch is null)
             {
-                throw new NotFoundException("Branch was not found.", ErrorCodes.BranchNotFound);
+                throw new NotFoundException(
+                    "Branch was not found.",
+                    ErrorCodes.BranchNotFound
+                );
             }
 
             return await MapBranchToDtoAsync(branch);
@@ -170,7 +183,12 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
         public async Task<BranchResponseDto> AddBranchAsync(AddBranchRequestDto request)
         {
-            await ValidateBranchNameUniquenessAsync(request.BranchNameAr, request.BranchNameEn);
+            ValidateWorkingHours(request.WorkingHours);
+
+            await ValidateBranchNameUniquenessAsync(
+                request.BranchNameAr,
+                request.BranchNameEn
+            );
 
             var manager = await ValidateBranchManagerAsync(
                 request.ManagerUserId,
@@ -188,12 +206,26 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
                 ManagerUserId = request.ManagerUserId,
                 GPSLat = request.GPSLat,
                 GPSLng = request.GPSLng,
-                Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
-                Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
+                Email = string.IsNullOrWhiteSpace(request.Email)
+                    ? null
+                    : request.Email.Trim(),
+                Phone = string.IsNullOrWhiteSpace(request.Phone)
+                    ? null
+                    : request.Phone.Trim(),
                 IsActive = true,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = null,
+
+                WorkingHours = request.WorkingHours
+                    .Select(wh => new BranchWorkingHour
+                    {
+                        DayOfWeek = wh.DayOfWeek,
+                        OpenTime = wh.OpenTime,
+                        CloseTime = wh.CloseTime,
+                        IsClosed = wh.IsClosed,
+                    })
+                    .ToList()
             };
 
             _context.Branches.Add(branch);
@@ -208,7 +240,9 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
             await transaction.CommitAsync();
 
             var createdBranch = await _context
-                .Branches.AsNoTracking()
+                .Branches
+                .AsNoTracking()
+                .Include(b => b.WorkingHours)
                 .FirstAsync(b => b.Id == branch.Id);
 
             return await MapBranchToDtoAsync(createdBranch);
@@ -223,13 +257,18 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
             UpdateBranchRequestDto request
         )
         {
+            ValidateWorkingHours(request.WorkingHours);
+
             var branch = await _context.Branches.FirstOrDefaultAsync(b =>
                 b.Id == branchId && !b.IsDeleted
             );
 
             if (branch is null)
             {
-                throw new NotFoundException("Branch was not found.", ErrorCodes.BranchNotFound);
+                throw new NotFoundException(
+                    "Branch was not found.",
+                    ErrorCodes.BranchNotFound
+                );
             }
 
             await ValidateBranchNameUniquenessAsync(
@@ -254,8 +293,12 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
             branch.ManagerUserId = request.ManagerUserId;
             branch.GPSLat = request.GPSLat;
             branch.GPSLng = request.GPSLng;
-            branch.Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
-            branch.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+            branch.Email = string.IsNullOrWhiteSpace(request.Email)
+                ? null
+                : request.Email.Trim();
+            branch.Phone = string.IsNullOrWhiteSpace(request.Phone)
+                ? null
+                : request.Phone.Trim();
             branch.IsActive = request.IsActive;
             branch.UpdatedAt = DateTime.UtcNow;
 
@@ -275,12 +318,34 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
             newManager.BranchId = branch.Id;
             newManager.UpdatedAt = DateTime.UtcNow;
 
+            var existingWorkingHours = await _context
+                .Set<BranchWorkingHour>()
+                .Where(wh => wh.BranchId == branch.Id)
+                .ToListAsync();
+
+            _context.Set<BranchWorkingHour>().RemoveRange(existingWorkingHours);
+
+            var newWorkingHours = request.WorkingHours
+                .Select(wh => new BranchWorkingHour
+                {
+                    BranchId = branch.Id,
+                    DayOfWeek = wh.DayOfWeek,
+                    OpenTime = wh.OpenTime,
+                    CloseTime = wh.CloseTime,
+                    IsClosed = wh.IsClosed,
+                })
+                .ToList();
+
+            await _context.Set<BranchWorkingHour>().AddRangeAsync(newWorkingHours);
+
             await _context.SaveChangesAsync();
 
             await transaction.CommitAsync();
 
             var updatedBranch = await _context
-                .Branches.AsNoTracking()
+                .Branches
+                .AsNoTracking()
+                .Include(b => b.WorkingHours)
                 .FirstAsync(b => b.Id == branch.Id);
 
             return await MapBranchToDtoAsync(updatedBranch);
@@ -298,8 +363,12 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
             if (branch is null)
             {
-                throw new NotFoundException("Branch was not found.", ErrorCodes.BranchNotFound);
+                throw new NotFoundException(
+                    "Branch was not found.",
+                    ErrorCodes.BranchNotFound
+                );
             }
+
             var hasHospitals = await _context.Hospitals.AnyAsync(h =>
                 h.BranchId == branchId && !h.IsDeleted
             );
@@ -345,7 +414,10 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
             if (branch is null)
             {
-                throw new NotFoundException("Branch was not found.", ErrorCodes.BranchNotFound);
+                throw new NotFoundException(
+                    "Branch was not found.",
+                    ErrorCodes.BranchNotFound
+                );
             }
 
             branch.IsActive = true;
@@ -366,7 +438,10 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
             if (branch is null)
             {
-                throw new NotFoundException("Branch was not found.", ErrorCodes.BranchNotFound);
+                throw new NotFoundException(
+                    "Branch was not found.",
+                    ErrorCodes.BranchNotFound
+                );
             }
 
             branch.IsActive = false;
@@ -405,6 +480,7 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
                     ErrorCodes.UserIsNotBranchManager
                 );
             }
+
             if (manager.HospitalId.HasValue)
             {
                 throw new BadRequestException(
@@ -441,7 +517,10 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
 
             var branchExists = await _context.Branches.AnyAsync(b =>
                 !b.IsDeleted
-                && (b.BranchNameAr == normalizedNameAr || b.BranchNameEn == normalizedNameEn)
+                && (
+                    b.BranchNameAr == normalizedNameAr
+                    || b.BranchNameEn == normalizedNameEn
+                )
                 && (!excludedBranchId.HasValue || b.Id != excludedBranchId.Value)
             );
 
@@ -451,6 +530,61 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
                     "A branch with the same Arabic or English name already exists.",
                     ErrorCodes.BranchAlreadyExists
                 );
+            }
+        }
+
+        private static void ValidateWorkingHours(
+            List<BranchWorkingHourRequestDto> workingHours
+        )
+        {
+            if (workingHours is null || workingHours.Count != 7)
+            {
+                throw new BadRequestException(
+                    "Working hours must contain exactly 7 days.",
+                    ErrorCodes.InvalidBranchWorkingHours
+                );
+            }
+
+            var hasDuplicateDays = workingHours
+                .GroupBy(wh => wh.DayOfWeek)
+                .Any(group => group.Count() > 1);
+
+            if (hasDuplicateDays)
+            {
+                throw new BadRequestException(
+                    "Working hours cannot contain duplicate days.",
+                    ErrorCodes.DuplicateBranchWorkingDay
+                );
+            }
+
+            var requiredDays = Enum.GetValues<DayOfWeek>();
+
+            var missingDay = requiredDays.Any(day =>
+                workingHours.All(wh => wh.DayOfWeek != day)
+            );
+
+            if (missingDay)
+            {
+                throw new BadRequestException(
+                    "Working hours must include all days of the week.",
+                    ErrorCodes.InvalidBranchWorkingHours
+                );
+            }
+
+            foreach (var workingHour in workingHours)
+            {
+                if (workingHour.IsClosed)
+                {
+                    continue;
+                }
+
+                if (workingHour.OpenTime >= workingHour.CloseTime)
+                {
+                    throw new BadRequestException(
+                        "Open time must be before close time.",
+                        ErrorCodes.InvalidBranchWorkingTime
+                    );
+                }
             }
         }
 
@@ -479,7 +613,8 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
         private async Task<BranchResponseDto> MapBranchToDtoAsync(Branch branch)
         {
             var manager = await _context
-                .Users.AsNoTracking()
+                .Users
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == branch.ManagerUserId);
 
             return new BranchResponseDto
@@ -500,15 +635,33 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
                 Email = branch.Email,
                 Phone = branch.Phone,
                 UpdatedAt = branch.UpdatedAt,
+
+                WorkingHours = branch.WorkingHours
+                    .OrderBy(wh => wh.DayOfWeek)
+                    .Select(wh => new BranchWorkingHourResponseDto
+                    {
+                        Id = wh.Id,
+                        DayOfWeek = wh.DayOfWeek,
+                        OpenTime = wh.OpenTime,
+                        CloseTime = wh.CloseTime,
+                        IsClosed = wh.IsClosed,
+                    })
+                    .ToList()
             };
         }
 
-        private async Task<List<BranchResponseDto>> MapBranchesToDtosAsync(List<Branch> branches)
+        private async Task<List<BranchResponseDto>> MapBranchesToDtosAsync(
+            List<Branch> branches
+        )
         {
-            var managerUserIds = branches.Select(b => b.ManagerUserId).Distinct().ToList();
+            var managerUserIds = branches
+                .Select(b => b.ManagerUserId)
+                .Distinct()
+                .ToList();
 
             var managers = await _context
-                .Users.AsNoTracking()
+                .Users
+                .AsNoTracking()
                 .Where(u => managerUserIds.Contains(u.Id))
                 .Select(u => new
                 {
@@ -541,6 +694,18 @@ namespace QatratHayat.Application.Features.BranchManagement.Services
                         Email = branch.Email,
                         Phone = branch.Phone,
                         UpdatedAt = branch.UpdatedAt,
+
+                        WorkingHours = branch.WorkingHours
+                            .OrderBy(wh => wh.DayOfWeek)
+                            .Select(wh => new BranchWorkingHourResponseDto
+                            {
+                                Id = wh.Id,
+                                DayOfWeek = wh.DayOfWeek,
+                                OpenTime = wh.OpenTime,
+                                CloseTime = wh.CloseTime,
+                                IsClosed = wh.IsClosed,
+                            })
+                            .ToList()
                     };
                 })
                 .ToList();

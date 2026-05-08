@@ -34,7 +34,13 @@ namespace QatratHayat.Application.Features.BranchManagement.DTOS
         [EmailAddress]
         public string? Email { get; set; }
 
-        [RegularExpression(@"^07\d{8}$", ErrorMessage = "Phone number must start with 07 and contain exactly 10 digits.")]
+        [MaxLength(10)]
+        [RegularExpression(@"^0\d{0,9}$", ErrorMessage = "Phone number must start with 0 and contain digits only, with a maximum length of 10 digits.")]
         public string? Phone { get; set; }
+
+        [Required]
+        [MinLength(7, ErrorMessage = "Working hours must contain all 7 days.")]
+        [MaxLength(7, ErrorMessage = "Working hours must contain all 7 days.")]
+        public List<BranchWorkingHourRequestDto> WorkingHours { get; set; } = new();
     }
 }

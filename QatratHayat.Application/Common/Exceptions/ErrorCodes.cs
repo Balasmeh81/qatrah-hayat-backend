@@ -126,6 +126,10 @@
         public const string BranchCreationFailed = "BRANCH_CREATION_FAILED";
         public const string BranchUpdateFailed = "BRANCH_UPDATE_FAILED";
         public const string BranchHasLinkedHospitals = "BRANCH_HAS_LINKED_HOSPITALS";
+
+        public const string InvalidBranchWorkingHours = "INVALID_BRANCH_WORKING_HOURS";
+        public const string DuplicateBranchWorkingDay = "DUPLICATE_BRANCH_WORKING_DAY";
+        public const string InvalidBranchWorkingTime = "INVALID_BRANCH_WORKING_TIME";
         //--------------------------------------------------------------
 
         // Hospital Management
