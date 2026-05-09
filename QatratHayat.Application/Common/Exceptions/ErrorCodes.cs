@@ -9,6 +9,8 @@
         public const string NotFound = "NOT_FOUND";
         public const string Conflict = "CONFLICT";
         public const string InternalServerError = "INTERNAL_SERVER_ERROR";
+        public const string CurrentUserNotFound = "CURRENT_USER_NOT_FOUND";
+        public const string UserNotAllowedToConfirmBloodType = "USER_NOT_ALLOWED_TO_CONFIRM_BLOOD_TYPE";
 
 
         // Auth
@@ -91,6 +93,12 @@
         public const string StaffCreationFailed = "STAFF_CREATION_FAILED";
         public const string StaffUpdateFailed = "STAFF_UPDATE_FAILED";
         public const string CitizenUpdateFailed = "CITIZEN_UPDATE_FAILED";
+
+        public const string BranchNotAllowedForDoctor = "BRANCH_NOT_ALLOWED_FOR_DOCTOR";
+        public const string HospitalNotAllowedForEmployee = "HOSPITAL_NOT_ALLOWED_FOR_EMPLOYEE";
+        public const string BranchManagerAssignmentMustBeManagedFromBranchManagement = "BRANCH_MANAGER_ASSIGNMENT_MUST_BE_MANAGED_FROM_BRANCH_MANAGEMENT";
+        public const string HospitalNotAllowedForBranchManager = "HOSPITAL_NOT_ALLOWED_FOR_BRANCH_MANAGER";
+        public const string LocationNotAllowedForAdmin = "LOCATION_NOT_ALLOWED_FOR_ADMIN";
 
         //--------------------------------------------------------------
 

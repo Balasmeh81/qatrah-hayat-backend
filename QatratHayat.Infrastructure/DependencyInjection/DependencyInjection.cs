@@ -43,6 +43,7 @@ namespace QatratHayat.Infrastructure
                 .AddRoles<ApplicationRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
+            services.AddHttpContextAccessor();
 
             services.AddScoped<IJwtTokenService, JwtTokenService>();
             services.AddScoped<IAccountService, AccountService>();
@@ -53,6 +54,7 @@ namespace QatratHayat.Infrastructure
             services.AddScoped<IHospitalManagementService, HospitalManagementService>();
             services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
             services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
             return services;
         }
     }
