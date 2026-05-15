@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QatratHayat.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using QatratHayat.Infrastructure.Persistence;
 namespace QatratHayat.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260510003956_fixBloodRequest")]
+    partial class fixBloodRequest
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -229,7 +232,7 @@ namespace QatratHayat.Infrastructure.Migrations
                     b.Property<int>("BeneficiaryId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("BloodType")
+                    b.Property<int>("BloodType")
                         .HasColumnType("int");
 
                     b.Property<int>("BranchId")
@@ -286,13 +289,13 @@ namespace QatratHayat.Infrastructure.Migrations
                     b.Property<int>("RequesterUserId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("UnitsNeeded")
+                    b.Property<int>("UnitsNeeded")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("UrgencyLevel")
+                    b.Property<int>("UrgencyLevel")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -306,8 +309,6 @@ namespace QatratHayat.Infrastructure.Migrations
                     b.HasIndex("DoctorId");
 
                     b.HasIndex("HospitalId");
-
-                    b.HasIndex("RejectedByUserId");
 
                     b.HasIndex("RequesterUserId");
 
@@ -1978,11 +1979,6 @@ namespace QatratHayat.Infrastructure.Migrations
                         .HasForeignKey("HospitalId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("QatratHayat.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("RejectedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QatratHayat.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany("CreatedBloodRequests")

@@ -4,10 +4,10 @@ public enum RequestStatus
 {
     PendingDoctorReview = 1,
     PendingBloodBank = 2,
-    PartiallyAllocated = 3,
-    Allocated = 4,
-    Fulfilled = 5,
-    Cancelled = 6,
-    Rejected = 7,
-    Shortage = 8
+    Shortage = 3,
+    PartiallyAllocated = 4,
+    Processing = 5,
+    Fulfilled = 6,
+    Cancelled = 7,
+    Rejected = 8
 }

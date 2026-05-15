@@ -144,5 +144,37 @@
         public const string HospitalAlreadyExists = "HOSPITAL_ALREADY_EXISTS";
         public const string BranchInactiveOrNotFound = "BRANCH_INACTIVE_OR_NOT_FOUND";
         public const string HospitalHasLinkedBloodRequests = "HOSPITAL_HAS_LINKED_BLOOD_REQUESTS";
+
+        //--------------------------------------------------------------
+
+        // Blood Request
+        public const string BloodRequestNotFound = "BLOOD_REQUEST_NOT_FOUND";
+        public const string InvalidBloodRequestStatus = "INVALID_BLOOD_REQUEST_STATUS";
+        public const string BloodRequestCreationFailed = "BLOOD_REQUEST_CREATION_FAILED";
+
+        public const string BeneficiaryNotFound = "BENEFICIARY_NOT_FOUND";
+        public const string BeneficiaryRequired = "BENEFICIARY_REQUIRED";
+        public const string InvalidBeneficiaryNationalId = "INVALID_BENEFICIARY_NATIONAL_ID";
+
+        public const string DoctorNotFoundForHospital = "DOCTOR_NOT_FOUND_FOR_HOSPITAL";
+        public const string DoctorNotAssignedToRequest = "DOCTOR_NOT_ASSIGNED_TO_REQUEST";
+        public const string DoctorCannotReviewRequest = "DOCTOR_CANNOT_REVIEW_REQUEST";
+
+        public const string EmployeeBranchNotAssigned = "EMPLOYEE_BRANCH_NOT_ASSIGNED";
+        public const string BloodRequestBranchMismatch = "BLOOD_REQUEST_BRANCH_MISMATCH";
+        public const string EmployeeCannotReviewRequest = "EMPLOYEE_CANNOT_REVIEW_REQUEST";
+
+        public const string ClinicalNotesRequired = "CLINICAL_NOTES_REQUIRED";
+        public const string RejectionReasonRequired = "REJECTION_REASON_REQUIRED";
+        public const string CancellationReasonRequired = "CANCELLATION_REASON_REQUIRED";
+
+        public const string UnitsNeededInvalid = "UNITS_NEEDED_INVALID";
+        public const string NoAvailableBloodUnits = "NO_AVAILABLE_BLOOD_UNITS";
+        public const string BeneficiaryNotFoundInNationalRegistry = "BENEFICIARY_NOT_FOUND_IN_NATIONAL_REGISTRY";
+
+        public const string BloodTypeRequired = "BLOOD_TYPE_REQUIRED";
+        public const string UrgencyLevelRequired = "URGENCY_LEVEL_REQUIRED";
+
+        public const string NoReservedUnitsFound = "NO_RESERVED_UNITS_FOUND";
     }
 }
