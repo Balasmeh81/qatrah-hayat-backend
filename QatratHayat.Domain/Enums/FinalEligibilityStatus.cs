@@ -4,6 +4,7 @@
     {
         Approved = 1,
         TempDeferred = 2,
-        PermDeferred = 3
+        PermDeferred = 3,
+        Rejected = 4
     }
 }

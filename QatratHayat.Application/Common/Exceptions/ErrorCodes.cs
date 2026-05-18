@@ -120,6 +120,8 @@
         public const string DateValueNotAllowed = "DATE_VALUE_NOT_ALLOWED";
         public const string AdditionalTextRequired = "ADDITIONAL_TEXT_REQUIRED";
         public const string AdditionalTextNotAllowed = "ADDITIONAL_TEXT_NOT_ALLOWED";
+        public const string RegistrationScreeningRequired = "REGISTRATION_SCREENING_REQUIRED";
+
 
         //--------------------------------------------------------------
 
@@ -176,5 +178,38 @@
         public const string UrgencyLevelRequired = "URGENCY_LEVEL_REQUIRED";
 
         public const string NoReservedUnitsFound = "NO_RESERVED_UNITS_FOUND";
+
+        // Donation Intent
+        public const string ActiveDonationIntentAlreadyExists = "ACTIVE_DONATION_INTENT_ALREADY_EXISTS";
+        public const string DonorAgeNotAllowed = "DONOR_AGE_NOT_ALLOWED";
+        public const string DonorTemporarilyDeferred = "DONOR_TEMPORARILY_DEFERRED";
+        public const string DonorPermanentlyDeferred = "DONOR_PERMANENTLY_DEFERRED";
+        public const string DonationIntervalNotPassed = "DONATION_INTERVAL_NOT_PASSED";
+
+
+        public const string BloodRequestNotPublished = "BLOOD_REQUEST_NOT_PUBLISHED";
+        public const string BloodRequestNotAvailableForDonation = "BLOOD_REQUEST_NOT_AVAILABLE_FOR_DONATION";
+        public const string BloodRequestBloodTypeMissing = "BLOOD_REQUEST_BLOOD_TYPE_MISSING";
+        public const string BloodRequestUnitsMissing = "BLOOD_REQUEST_UNITS_MISSING";
+        public const string BloodRequestDoesNotNeedMoreUnits = "BLOOD_REQUEST_DOES_NOT_NEED_MORE_UNITS";
+
+        public const string BloodTypeNotCompatible = "BLOOD_TYPE_NOT_COMPATIBLE";
+
+        public const string DonationIntentNotActive = "DONATION_INTENT_NOT_ACTIVE";
+
+        public const string ScreeningSessionNotFound = "SCREENING_SESSION_NOT_FOUND";
+        public const string ScreeningSessionNotEligible = "SCREENING_SESSION_NOT_ELIGIBLE";
+        public const string ScreeningSessionNotCompleted = "SCREENING_SESSION_NOT_COMPLETED";
+        public const string ScreeningSessionAlreadyUsed = "SCREENING_SESSION_ALREADY_USED";
+
+        public const string EmployeeBranchRequired = "EMPLOYEE_BRANCH_REQUIRED";
+        public const string DonationIntentExpired = "DONATION_INTENT_EXPIRED";
+        public const string ConfirmedBloodTypeRequired = "CONFIRMED_BLOOD_TYPE_REQUIRED";
+        public const string TemporaryDeferralEndDateRequired = "TEMPORARY_DEFERRAL_END_DATE_REQUIRED";
+        public const string TemporaryDeferralEndDateInvalid = "TEMPORARY_DEFERRAL_END_DATE_INVALID";
+        public const string FinalDecisionReasonRequired = "FINAL_DECISION_REASON_REQUIRED";
+        public const string UnsupportedFinalEligibilityStatus = "UNSUPPORTED_FINAL_ELIGIBILITY_STATUS";
+
+        public const string DonorBloodTypeMustBeConfirmed = "DONOR_BLOOD_TYPE_MUST_BE_CONFIRMED";
     }
 }

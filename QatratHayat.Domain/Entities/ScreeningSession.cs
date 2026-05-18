@@ -20,6 +20,8 @@ namespace QatratHayat.Domain.Entities
 
         [MaxLength(1000)]
         public string? Notes { get; set; }
+        [Required]
+        public bool HasReviewAnswers { get; set; }
 
         [Required]
         public int UserId { get; set; }
