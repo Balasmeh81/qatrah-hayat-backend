@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QatratHayat.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using QatratHayat.Infrastructure.Persistence;
 namespace QatratHayat.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518062430_AddHasReviewAnswersToScreeningSession")]
+    partial class AddHasReviewAnswersToScreeningSession
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -698,9 +701,6 @@ namespace QatratHayat.Infrastructure.Migrations
                     b.Property<int?>("BloodRequestId")
                         .HasColumnType("int");
 
-                    b.Property<int>("BranchId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("CampaignId")
                         .HasColumnType("int");
 
@@ -723,11 +723,9 @@ namespace QatratHayat.Infrastructure.Migrations
 
                     b.HasIndex("BloodRequestId");
 
-                    b.HasIndex("BranchId");
-
                     b.HasIndex("CampaignId");
 
-                    b.HasIndex("DonorProfileId", "DonationIntentStatus");
+                    b.HasIndex("DonorProfileId");
 
                     b.ToTable("DonationIntents");
                 });
@@ -2168,12 +2166,6 @@ namespace QatratHayat.Infrastructure.Migrations
                         .HasForeignKey("BloodRequestId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QatratHayat.Domain.Entities.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("QatratHayat.Domain.Entities.Campaign", "Campaign")
                         .WithMany("DonationIntents")
                         .HasForeignKey("CampaignId")
@@ -2186,8 +2178,6 @@ namespace QatratHayat.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("BloodRequest");
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Campaign");
 

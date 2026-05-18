@@ -442,6 +442,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
             return await GetDetailsByIdInternalAsync(request.Id);
         }
+
         public async Task<BloodRequestDetailsResponseDto> ConfirmReceivedAsync(int requestId)
         {
             var currentUserId = GetCurrentUserIdOrThrow();
@@ -487,10 +488,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 );
             }
 
-            var allocatedUnits = await _context.BloodUnits
-                .Where(u =>
-                    u.AllocatedToRequestId == request.Id
-                    && u.UnitStatus == UnitStatus.Allocated
+            var allocatedUnits = await _context
+                .BloodUnits.Where(u =>
+                    u.AllocatedToRequestId == request.Id && u.UnitStatus == UnitStatus.Allocated
                 )
                 .ToListAsync();
 
@@ -1619,6 +1619,14 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             );
 
             var unitsNeeded = request.UnitsNeeded ?? 0;
+            var donationIntentsCount = await _context.DonationIntents.CountAsync(i =>
+                i.BloodRequestId == request.Id
+            );
+
+            var activeDonationIntentsCount = await _context.DonationIntents.CountAsync(i =>
+                i.BloodRequestId == request.Id
+                && i.DonationIntentStatus == DonationIntentStatus.Active
+            );
 
             return new BloodRequestResponseDto
             {
@@ -1636,6 +1644,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 UnitsReserved = unitsReserved,
                 UnitsAllocated = unitsAllocated,
                 UnitsRemaining = Math.Max(unitsNeeded - unitsReserved - unitsAllocated, 0),
+
+                DonationIntentsCount = donationIntentsCount,
+                ActiveDonationIntentsCount = activeDonationIntentsCount,
 
                 UrgencyLevel = request.UrgencyLevel,
                 RequestStatus = request.RequestStatus,
@@ -1704,6 +1715,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 UnitsReserved = baseDto.UnitsReserved,
                 UnitsAllocated = baseDto.UnitsAllocated,
                 UnitsRemaining = baseDto.UnitsRemaining,
+
+                DonationIntentsCount = baseDto.DonationIntentsCount,
+                ActiveDonationIntentsCount = baseDto.ActiveDonationIntentsCount,
 
                 UrgencyLevel = baseDto.UrgencyLevel,
                 RequestStatus = baseDto.RequestStatus,

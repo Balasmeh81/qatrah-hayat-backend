@@ -214,6 +214,12 @@ namespace QatratHayat.Infrastructure.Persistence
                      .HasForeignKey(x => x.DonorProfileId)
                      .OnDelete(DeleteBehavior.Restrict);
 
+                // 1:N A branch can receive many donation intents
+                entity.HasOne(x => x.Branch)
+                      .WithMany()
+                      .HasForeignKey(x => x.BranchId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
                 // N:1 An intent may target a campaign (DonationType=Campaign)
                 entity.HasOne(x => x.Campaign)
                        .WithMany(x => x.DonationIntents)
@@ -225,8 +231,10 @@ namespace QatratHayat.Infrastructure.Persistence
                        .WithMany(x => x.DonationIntents)
                        .HasForeignKey(x => x.BloodRequestId)
                        .OnDelete(DeleteBehavior.Restrict);
-            });
 
+                entity.HasIndex(x => new { x.DonorProfileId, x.DonationIntentStatus });
+                entity.HasIndex(x => x.BranchId);
+            });
             // BloodRequest
             builder.Entity<BloodRequest>(entity =>
             {

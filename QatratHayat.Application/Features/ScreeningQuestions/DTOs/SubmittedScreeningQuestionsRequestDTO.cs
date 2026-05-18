@@ -8,8 +8,6 @@ namespace QatratHayat.Application.Features.ScreeningQuestions.DTOs
         [Required]
         public ScreeningSessionType SessionType { get; set; }
 
-        public int? DonationIntentId { get; set; }
-
         [Required]
         [MinLength(1)]
         public List<ScreeningAnswerDTO> Answers { get; set; } = new();

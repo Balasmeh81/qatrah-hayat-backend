@@ -22,26 +22,32 @@ namespace QatratHayat.Infrastructure.Services
             SubmittedScreeningQuestionsRequestDTO request
         )
         {
-            // 1.Get User
-            var user = await _context
-                .Users.Include(x => x.DonorProfile)
+            var user = await _context.Users
+                .Include(x => x.DonorProfile)
                 .FirstOrDefaultAsync(x => x.Id == userId);
-            // 2.Check User
+
             if (user is null)
+            {
                 throw new NotFoundException("User not found.", ErrorCodes.UserNotFound);
+            }
+
             if (!user.IsActive || user.IsDeleted)
+            {
                 throw new UnauthorizedException(
                     "This account is inactive.",
                     ErrorCodes.AuthAccountInactive
                 );
+            }
 
-            // 3. If Screening Session Type == Registration
             if (request.SessionType == ScreeningSessionType.Registration)
+            {
                 return await HandleRegistrationAsync(user, request);
+            }
 
-            // 4. If Screening Session Type == PreDonation
             if (request.SessionType == ScreeningSessionType.PreDonation)
+            {
                 return await HandlePreDonationAsync(user, request);
+            }
 
             throw new BadRequestException(
                 "Unsupported screening session type.",
@@ -49,88 +55,76 @@ namespace QatratHayat.Infrastructure.Services
             );
         }
 
-        // Handle Registration Questions
         private async Task<SubmittedScreeningResponseDTO> HandleRegistrationAsync(
             Identity.ApplicationUser user,
             SubmittedScreeningQuestionsRequestDTO request
         )
         {
-            // 1. Check if Screening Questions Request For Registration
-            if (request.DonationIntentId.HasValue)
-                throw new BadRequestException(
-                    "DonationIntentId must be null for Registration screening.",
-                    ErrorCodes.DonationIntentMustBeNull
-                );
-
             if (user.IsProfileCompleted)
+            {
                 throw new BadRequestException(
                     "Registration screening already completed.",
                     ErrorCodes.RegistrationAlreadyCompleted
                 );
+            }
 
-            // 2. Get All Registration Screening Questions
-            var activeQuestions = await _context
-                .ScreeningQuestions.Where(q =>
-                    q.IsActive && q.SessionType == ScreeningSessionType.Registration
-                )
-                .OrderBy(q => q.DisplayOrder)
-                .ToListAsync();
+            var activeQuestions = await GetActiveQuestionsForUserAsync(
+                ScreeningSessionType.Registration,
+                user.Gender
+            );
 
-            // 3. Validate Questions And Answers
-            ValidateQuestionsAndAnswers(user, request, activeQuestions);
+            ValidateQuestionsAndAnswers(request, activeQuestions);
 
-            // 4. Create Screening Session
+            var evaluation = EvaluateScreeningAnswers(request.Answers, activeQuestions);
+
             var session = new ScreeningSession
             {
                 SessionType = ScreeningSessionType.Registration,
                 UserId = user.Id,
-                DonorProfileId = user.DonorProfile?.Id ?? null,
-                DonationIntentId = request.DonationIntentId ?? null,
-                ResultEligibilityStatus = EligibilityStatus.Eligible,
+                DonorProfileId = user.DonorProfile?.Id,
+                DonationIntentId = null,
+                ResultEligibilityStatus = evaluation.ResultEligibilityStatus,
+                HasReviewAnswers = evaluation.HasReviewAnswers,
                 CreatedAt = DateTime.UtcNow,
                 CompletedAt = DateTime.UtcNow,
             };
-            // 5. Save Screening Session
+
             _context.ScreeningSessions.Add(session);
             await _context.SaveChangesAsync();
 
-            // 6. Create Screening Answers
-            var answers = request
-                .Answers.Select(a => new ScreeningAnswer
-                {
-                    Answer = a.Answer,
-                    CreatedAt = DateTime.UtcNow,
-                    ConditionalDateValue = a.ConditionalDateValue,
-                    AdditionalText = string.IsNullOrWhiteSpace(a.AdditionalText)
-                        ? null
-                        : a.AdditionalText.Trim(),
-                    UserId = user.Id,
-                    ScreeningSessionId = session.Id,
-                    DonationIntentId = request.DonationIntentId ?? null,
-                    DonorProfileId = user.DonorProfile?.Id ?? null,
-                    ScreeningQuestionId = a.ScreeningQuestionId,
-                })
-                .ToList();
+            var answers = CreateScreeningAnswers(
+                user.Id,
+                user.DonorProfile?.Id,
+                session.Id,
+                null,
+                request.Answers
+            );
 
-            // 7. Insetrt Screening Answers
             _context.ScreeningAnswers.AddRange(answers);
 
-            // 8. Update Is Profile Completed In User and Save The change in DB
+            if (user.DonorProfile is not null)
+            {
+                ApplyEligibilityToDonorProfile(user.DonorProfile, evaluation);
+            }
+
+            await CreateDeferralRecordsIfNeededAsync(
+                donorProfileId: user.DonorProfile?.Id,
+                screeningSessionId: session.Id,
+                submittedAnswers: request.Answers,
+                activeQuestions: activeQuestions
+            );
+
             user.IsProfileCompleted = true;
             user.UpdatedAt = DateTime.UtcNow;
-            //user.DonorProfile.LastDonationDate= Last dontaion answer
+
             await _context.SaveChangesAsync();
 
-            // 9. Return Screening Response
-            return new SubmittedScreeningResponseDTO
-            {
-                ScreeningSessionId = session.Id,
-                SessionType = session.SessionType,
-                IsProfileCompleted = user.IsProfileCompleted,
-                ResultEligibilityStatus = session.ResultEligibilityStatus,
-                CreatedAt = session.CreatedAt,
-                SavedAnswersCount = answers.Count,
-            };
+            return BuildSubmittedScreeningResponse(
+                session,
+                user.IsProfileCompleted,
+                user.DonorProfile?.NextEligibleDate,
+                answers.Count
+            );
         }
 
         private async Task<SubmittedScreeningResponseDTO> HandlePreDonationAsync(
@@ -138,136 +132,116 @@ namespace QatratHayat.Infrastructure.Services
             SubmittedScreeningQuestionsRequestDTO request
         )
         {
-            // 1. Check if Screening Questions Request For PreDonation
-            if (!request.DonationIntentId.HasValue)
+            if (!user.IsProfileCompleted)
+            {
                 throw new BadRequestException(
-                    "DonationIntentId is required for PreDonation screening.",
-                    ErrorCodes.DonationIntentRequired
+                    "Registration screening must be completed before pre-donation screening.",
+                    ErrorCodes.RegistrationScreeningRequired
                 );
-
-            // 2. Check if Donor Profile
+            }
 
             if (user.DonorProfile is null)
+            {
                 throw new BadRequestException(
                     "Donor profile is required for PreDonation screening.",
                     ErrorCodes.DonorProfileRequired
                 );
+            }
 
-            // 3. Get The Donation Intent
-            var donationIntent = await _context.DonationIntents.FirstOrDefaultAsync(x =>
-                x.Id == request.DonationIntentId.Value
+            var activeQuestions = await GetActiveQuestionsForUserAsync(
+                ScreeningSessionType.PreDonation,
+                user.Gender
             );
 
-            // 4. Check The Donation Intent
-            if (donationIntent is null)
-                throw new NotFoundException(
-                    "Donation intent not found.",
-                    ErrorCodes.DonationIntentNotFound
-                );
+            ValidateQuestionsAndAnswers(request, activeQuestions);
 
-            if (donationIntent.DonorProfileId != user.DonorProfile.Id)
-                throw new UnauthorizedException(
-                    "Donation intent does not belong to the current user.",
-                    ErrorCodes.DonationIntentOwnershipMismatch
-                );
+            var evaluation = EvaluateScreeningAnswers(request.Answers, activeQuestions);
 
-            // 5. Get All PreDonation Screening Questions
-            var activeQuestions = await _context
-                .ScreeningQuestions.Where(q =>
-                    q.IsActive && q.SessionType == ScreeningSessionType.PreDonation
-                )
-                .OrderBy(q => q.DisplayOrder)
-                .ToListAsync();
-
-            // 6. Validate Questions And Answers
-            ValidateQuestionsAndAnswers(user, request, activeQuestions);
-
-            // 7. Get The Eligibility Status
-            var resultEligibilityStatus = CalculatePreDonationEligibility(request, activeQuestions);
-
-            // 8. Create Screening Session
             var session = new ScreeningSession
             {
                 SessionType = ScreeningSessionType.PreDonation,
                 UserId = user.Id,
                 DonorProfileId = user.DonorProfile.Id,
-                DonationIntentId = request.DonationIntentId,
-                ResultEligibilityStatus = resultEligibilityStatus,
+                DonationIntentId = null,
+                ResultEligibilityStatus = evaluation.ResultEligibilityStatus,
+                HasReviewAnswers = evaluation.HasReviewAnswers,
                 CreatedAt = DateTime.UtcNow,
                 CompletedAt = DateTime.UtcNow,
             };
-            // 9. Save Screening Session
+
             _context.ScreeningSessions.Add(session);
             await _context.SaveChangesAsync();
 
-            // 10. Create Screening Answers
-            var answers = request
-                .Answers.Select(a => new ScreeningAnswer
-                {
-                    Answer = a.Answer,
-                    CreatedAt = DateTime.UtcNow,
-                    ConditionalDateValue = a.ConditionalDateValue,
-                    AdditionalText = string.IsNullOrWhiteSpace(a.AdditionalText)
-                        ? null
-                        : a.AdditionalText.Trim(),
-                    UserId = user.Id,
-                    ScreeningSessionId = session.Id,
-                    DonationIntentId = request.DonationIntentId,
-                    DonorProfileId = user.DonorProfile.Id,
-                    ScreeningQuestionId = a.ScreeningQuestionId,
-                })
-                .ToList();
-
-            // 11. Insert Screening Answers
-            _context.ScreeningAnswers.AddRange(answers);
-
-            // 12. Update Eligibility Status in Donor Profile
-            user.DonorProfile.EligibilityStatus = resultEligibilityStatus;
-            user.DonorProfile.UpdatedAt = DateTime.UtcNow;
-
-            // 13. Create Deferral Records If Needed
-            await CreateDeferralRecordsIfNeededAsync(
+            var answers = CreateScreeningAnswers(
+                user.Id,
                 user.DonorProfile.Id,
                 session.Id,
-                request.Answers,
-                activeQuestions
+                null,
+                request.Answers
             );
 
-            // 14. Save the Deferral Records
+            _context.ScreeningAnswers.AddRange(answers);
+
+            ApplyEligibilityToDonorProfile(user.DonorProfile, evaluation);
+
+            await CreateDeferralRecordsIfNeededAsync(
+                donorProfileId: user.DonorProfile.Id,
+                screeningSessionId: session.Id,
+                submittedAnswers: request.Answers,
+                activeQuestions: activeQuestions
+            );
+
             await _context.SaveChangesAsync();
 
-            // 13. Return Screening Response
-            return new SubmittedScreeningResponseDTO
+            return BuildSubmittedScreeningResponse(
+                session,
+                user.IsProfileCompleted,
+                user.DonorProfile.NextEligibleDate,
+                answers.Count
+            );
+        }
+
+        private async Task<List<ScreeningQuestion>> GetActiveQuestionsForUserAsync(
+            ScreeningSessionType sessionType,
+            Gender gender
+        )
+        {
+            var query = _context.ScreeningQuestions
+                .Where(q => q.IsActive && q.SessionType == sessionType);
+
+            if (gender != Gender.Female)
             {
-                ScreeningSessionId = session.Id,
-                SessionType = session.SessionType,
-                IsProfileCompleted = user.IsProfileCompleted,
-                ResultEligibilityStatus = session.ResultEligibilityStatus,
-                CreatedAt = session.CreatedAt,
-                SavedAnswersCount = answers.Count,
-            };
+                query = query.Where(q => !q.IsForFemaleOnly);
+            }
+
+            return await query
+                .OrderBy(q => q.DisplayOrder)
+                .ToListAsync();
         }
 
         private void ValidateQuestionsAndAnswers(
-            Identity.ApplicationUser user,
             SubmittedScreeningQuestionsRequestDTO request,
             List<ScreeningQuestion> activeQuestions
         )
         {
             if (!activeQuestions.Any())
+            {
                 throw new BadRequestException(
                     "No active screening questions found.",
                     ErrorCodes.NoActiveScreeningQuestions
                 );
+            }
 
             var activeQuestionIds = activeQuestions.Select(q => q.Id).ToHashSet();
             var submittedQuestionIds = request.Answers.Select(a => a.ScreeningQuestionId).ToList();
 
             if (submittedQuestionIds.Count != submittedQuestionIds.Distinct().Count())
+            {
                 throw new BadRequestException(
                     "Duplicate question answers are not allowed.",
                     ErrorCodes.DuplicateQuestionAnswers
                 );
+            }
 
             var invalidQuestionIds = submittedQuestionIds
                 .Where(id => !activeQuestionIds.Contains(id))
@@ -275,20 +249,24 @@ namespace QatratHayat.Infrastructure.Services
                 .ToList();
 
             if (invalidQuestionIds.Any())
+            {
                 throw new BadRequestException(
                     $"Invalid question ids: {string.Join(", ", invalidQuestionIds)}",
                     ErrorCodes.InvalidQuestionIds
                 );
+            }
 
             var missingQuestionIds = activeQuestionIds
                 .Where(id => !submittedQuestionIds.Contains(id))
                 .ToList();
 
             if (missingQuestionIds.Any())
+            {
                 throw new BadRequestException(
                     $"All active questions must be answered. Missing ids: {string.Join(", ", missingQuestionIds)}",
                     ErrorCodes.MissingQuestionAnswers
                 );
+            }
 
             foreach (var submittedAnswer in request.Answers)
             {
@@ -296,84 +274,217 @@ namespace QatratHayat.Infrastructure.Services
                     q.Id == submittedAnswer.ScreeningQuestionId
                 );
 
-                if (question.IsForFemaleOnly && user.Gender != Gender.Female)
-                    throw new BadRequestException(
-                        $"Question '{question.TextEn}' is for female users only.",
-                        ErrorCodes.FemaleOnlyQuestionViolation
-                    );
-
                 if (
                     submittedAnswer.Answer
                     && question.RequiresDateValue
                     && !submittedAnswer.ConditionalDateValue.HasValue
                 )
+                {
                     throw new BadRequestException(
                         $"Question '{question.TextEn}' requires a date value.",
                         ErrorCodes.DateValueRequired
                     );
+                }
 
                 if (!submittedAnswer.Answer && submittedAnswer.ConditionalDateValue.HasValue)
+                {
                     throw new BadRequestException(
                         $"Question '{question.TextEn}' should not contain a date value.",
                         ErrorCodes.DateValueNotAllowed
                     );
+                }
 
                 if (
                     submittedAnswer.Answer
                     && question.RequiresAdditionalText
                     && string.IsNullOrWhiteSpace(submittedAnswer.AdditionalText)
                 )
+                {
                     throw new BadRequestException(
                         $"Question '{question.TextEn}' requires additional text.",
                         ErrorCodes.AdditionalTextRequired
                     );
+                }
 
                 if (
                     (!submittedAnswer.Answer || !question.RequiresAdditionalText)
                     && !string.IsNullOrWhiteSpace(submittedAnswer.AdditionalText)
                 )
+                {
                     throw new BadRequestException(
                         $"Question '{question.TextEn}' should not contain additional text.",
                         ErrorCodes.AdditionalTextNotAllowed
                     );
+                }
             }
         }
 
-        private EligibilityStatus CalculatePreDonationEligibility(
-            SubmittedScreeningQuestionsRequestDTO request,
+        private ScreeningEvaluationResult EvaluateScreeningAnswers(
+            List<ScreeningAnswerDTO> submittedAnswers,
             List<ScreeningQuestion> activeQuestions
         )
         {
-            var autoDeferralYesQuestions = activeQuestions
-                .Where(q => q.DecisionMode == ScreeningDecisionMode.AutoDeferralWhenYes)
-                .ToDictionary(q => q.Id, q => q);
+            var questionMap = activeQuestions.ToDictionary(q => q.Id, q => q);
 
-            var answeredYes = request
-                .Answers.Where(a =>
-                    a.Answer && autoDeferralYesQuestions.ContainsKey(a.ScreeningQuestionId)
-                )
-                .Select(a => autoDeferralYesQuestions[a.ScreeningQuestionId])
+            var answeredYesQuestions = submittedAnswers
+                .Where(a => a.Answer && questionMap.ContainsKey(a.ScreeningQuestionId))
+                .Select(a => questionMap[a.ScreeningQuestionId])
                 .ToList();
 
-            if (!answeredYes.Any())
-                return EligibilityStatus.Eligible;
+            var autoDeferralQuestions = answeredYesQuestions
+                .Where(q => q.DecisionMode == ScreeningDecisionMode.AutoDeferralWhenYes)
+                .ToList();
 
-            if (answeredYes.Any(q => q.DeferralType == DeferralType.Permanent))
-                return EligibilityStatus.PermDeferred;
+            var hasReviewAnswers = answeredYesQuestions.Any(q =>
+                q.DecisionMode == ScreeningDecisionMode.ReviewWhenYes
+            );
 
-            if (answeredYes.Any(q => q.DeferralType == DeferralType.Temporary))
-                return EligibilityStatus.TempDeferred;
+            if (autoDeferralQuestions.Any(q => q.DeferralType == DeferralType.Permanent))
+            {
+                return new ScreeningEvaluationResult
+                {
+                    ResultEligibilityStatus = EligibilityStatus.PermDeferred,
+                    HasReviewAnswers = hasReviewAnswers,
+                    NextEligibleDate = null,
+                    PermanentDeferralReason = autoDeferralQuestions
+                        .First(q => q.DeferralType == DeferralType.Permanent)
+                        .TextEn
+                };
+            }
 
-            return EligibilityStatus.Eligible;
+            var temporaryQuestions = autoDeferralQuestions
+                .Where(q => q.DeferralType == DeferralType.Temporary)
+                .ToList();
+
+            if (temporaryQuestions.Any())
+            {
+                var nextEligibleDate = CalculateLatestTemporaryDeferralEndDate(
+                    submittedAnswers,
+                    temporaryQuestions
+                );
+
+                return new ScreeningEvaluationResult
+                {
+                    ResultEligibilityStatus = EligibilityStatus.TempDeferred,
+                    HasReviewAnswers = hasReviewAnswers,
+                    NextEligibleDate = nextEligibleDate
+                };
+            }
+
+            return new ScreeningEvaluationResult
+            {
+                ResultEligibilityStatus = EligibilityStatus.Eligible,
+                HasReviewAnswers = hasReviewAnswers,
+                NextEligibleDate = null
+            };
+        }
+
+        private DateTime? CalculateLatestTemporaryDeferralEndDate(
+            List<ScreeningAnswerDTO> submittedAnswers,
+            List<ScreeningQuestion> temporaryQuestions
+        )
+        {
+            var temporaryQuestionMap = temporaryQuestions.ToDictionary(q => q.Id, q => q);
+            DateTime? latestEndDate = null;
+
+            foreach (var answer in submittedAnswers.Where(a => a.Answer))
+            {
+                if (!temporaryQuestionMap.TryGetValue(answer.ScreeningQuestionId, out var question))
+                {
+                    continue;
+                }
+
+                if (!question.DeferralPeriodDays.HasValue)
+                {
+                    continue;
+                }
+
+                var baseDate = answer.ConditionalDateValue ?? DateTime.UtcNow;
+                var endDate = baseDate.AddDays(question.DeferralPeriodDays.Value);
+
+                if (!latestEndDate.HasValue || endDate > latestEndDate.Value)
+                {
+                    latestEndDate = endDate;
+                }
+            }
+
+            return latestEndDate;
+        }
+
+        private List<ScreeningAnswer> CreateScreeningAnswers(
+            int userId,
+            int? donorProfileId,
+            int screeningSessionId,
+            int? donationIntentId,
+            List<ScreeningAnswerDTO> submittedAnswers
+        )
+        {
+            return submittedAnswers
+                .Select(a => new ScreeningAnswer
+                {
+                    Answer = a.Answer,
+                    CreatedAt = DateTime.UtcNow,
+                    ConditionalDateValue = a.ConditionalDateValue,
+                    AdditionalText = string.IsNullOrWhiteSpace(a.AdditionalText)
+                        ? null
+                        : a.AdditionalText.Trim(),
+                    UserId = userId,
+                    ScreeningSessionId = screeningSessionId,
+                    DonationIntentId = donationIntentId,
+                    DonorProfileId = donorProfileId,
+                    ScreeningQuestionId = a.ScreeningQuestionId,
+                })
+                .ToList();
+        }
+
+        private void ApplyEligibilityToDonorProfile(
+            DonorProfile donorProfile,
+            ScreeningEvaluationResult evaluation
+        )
+        {
+            donorProfile.EligibilityStatus = evaluation.ResultEligibilityStatus;
+            donorProfile.UpdatedAt = DateTime.UtcNow;
+
+            if (evaluation.ResultEligibilityStatus == EligibilityStatus.TempDeferred)
+            {
+                donorProfile.NextEligibleDate = evaluation.NextEligibleDate;
+                donorProfile.PermanentDeferralReason = null;
+                return;
+            }
+
+            if (evaluation.ResultEligibilityStatus == EligibilityStatus.PermDeferred)
+            {
+                donorProfile.NextEligibleDate = null;
+                donorProfile.PermanentDeferralReason = evaluation.PermanentDeferralReason;
+                return;
+            }
+
+            if (evaluation.ResultEligibilityStatus == EligibilityStatus.Eligible)
+            {
+                donorProfile.PermanentDeferralReason = null;
+
+                if (
+                    donorProfile.NextEligibleDate.HasValue
+                    && donorProfile.NextEligibleDate.Value <= DateTime.UtcNow
+                )
+                {
+                    donorProfile.NextEligibleDate = null;
+                }
+            }
         }
 
         private async Task CreateDeferralRecordsIfNeededAsync(
-            int donorProfileId,
+            int? donorProfileId,
             int screeningSessionId,
             List<ScreeningAnswerDTO> submittedAnswers,
             List<ScreeningQuestion> activeQuestions
         )
         {
+            if (!donorProfileId.HasValue)
+            {
+                return;
+            }
+
             var questionMap = activeQuestions.ToDictionary(q => q.Id, q => q);
 
             var answersThatCauseDeferral = submittedAnswers
@@ -405,7 +516,7 @@ namespace QatratHayat.Infrastructure.Services
 
                 var record = new DeferralRecord
                 {
-                    DonorProfileId = donorProfileId,
+                    DonorProfileId = donorProfileId.Value,
                     ScreeningSessionId = screeningSessionId,
                     ScreeningQuestionId = question.Id,
                     DeferralType = question.DeferralType,
@@ -420,23 +531,43 @@ namespace QatratHayat.Infrastructure.Services
             }
         }
 
+        private SubmittedScreeningResponseDTO BuildSubmittedScreeningResponse(
+            ScreeningSession session,
+            bool isProfileCompleted,
+            DateTime? nextEligibleDate,
+            int savedAnswersCount
+        )
+        {
+            return new SubmittedScreeningResponseDTO
+            {
+                ScreeningSessionId = session.Id,
+                SessionType = session.SessionType,
+                IsProfileCompleted = isProfileCompleted,
+                ResultEligibilityStatus = session.ResultEligibilityStatus,
+                HasReviewAnswers = session.HasReviewAnswers,
+                NextEligibleDate = nextEligibleDate,
+                CanContinueToDonation =
+                    session.SessionType == ScreeningSessionType.PreDonation
+                    && session.ResultEligibilityStatus == EligibilityStatus.Eligible,
+                CreatedAt = session.CreatedAt,
+                SavedAnswersCount = savedAnswersCount,
+            };
+        }
+
         public async Task<List<GetScreeningQuestionsResponseDTO>> GetScreeningQuestionsAsync(
             ScreeningSessionType sessionType,
             bool isForFemaleOnly
         )
         {
-            // 1. Get All Active Screening Questions by Session Type
             var query = _context
                 .ScreeningQuestions.AsNoTracking()
                 .Where(q => q.IsActive && q.SessionType == sessionType);
 
-            // 2. If The User Male Do Not Get The Screening Questions that for Female
             if (!isForFemaleOnly)
             {
                 query = query.Where(q => !q.IsForFemaleOnly);
             }
 
-            // 3. Create List Of GetScreeningQuestionsResponseDTO and Return it
             var questions = await query
                 .OrderBy(q => q.DisplayOrder)
                 .Select(q => new GetScreeningQuestionsResponseDTO
@@ -457,6 +588,14 @@ namespace QatratHayat.Infrastructure.Services
                 .ToListAsync();
 
             return questions;
+        }
+
+        private class ScreeningEvaluationResult
+        {
+            public EligibilityStatus ResultEligibilityStatus { get; set; }
+            public bool HasReviewAnswers { get; set; }
+            public DateTime? NextEligibleDate { get; set; }
+            public string? PermanentDeferralReason { get; set; }
         }
     }
 }

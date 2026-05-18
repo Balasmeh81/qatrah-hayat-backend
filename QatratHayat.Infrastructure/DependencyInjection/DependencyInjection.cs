@@ -9,11 +9,13 @@ using QatratHayat.Application.Features.BloodRequests.Interfaces;
 using QatratHayat.Application.Features.BloodRequests.Services;
 using QatratHayat.Application.Features.BranchManagement.Interfaces;
 using QatratHayat.Application.Features.BranchManagement.Services;
+using QatratHayat.Application.Features.Donations.Interfaces;
 using QatratHayat.Application.Features.HospitalManagement.Interfaces;
 using QatratHayat.Application.Features.HospitalManagement.Services;
 using QatratHayat.Application.Features.ScreeningQuestions.Interfaces;
 using QatratHayat.Application.Features.UsersManagement.Interfaces;
 using QatratHayat.Application.Features.UsersManagement.Services;
+using QatratHayat.Infrastructure.BackgroundJobs;
 using QatratHayat.Infrastructure.Identity;
 using QatratHayat.Infrastructure.Persistence;
 using QatratHayat.Infrastructure.Services;
@@ -58,6 +60,12 @@ namespace QatratHayat.Infrastructure
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IBloodRequestService, BloodRequestService>();
+            services.AddScoped<IBloodTypeCompatibilityService, BloodTypeCompatibilityService>();
+            services.AddScoped<IDonationService, DonationService>();
+            services.AddScoped<IUnitCodeGenerator, UnitCodeGenerator>();
+            services.AddScoped<IBloodUnitSmartAllocationService, BloodUnitSmartAllocationService>();
+            services.AddHostedService<DonationIntentExpirationBackgroundService>();
+            services.AddHostedService<BloodUnitExpirationBackgroundService>();
             return services;
         }
     }
