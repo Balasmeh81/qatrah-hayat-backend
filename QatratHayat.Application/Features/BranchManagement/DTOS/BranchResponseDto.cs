@@ -33,5 +33,6 @@
         public string? Phone { get; set; }
 
         public DateTime? UpdatedAt { get; set; }
+        public List<BranchWorkingHourResponseDto> WorkingHours { get; set; } = new();
     }
 }

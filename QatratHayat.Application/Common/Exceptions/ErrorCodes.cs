@@ -9,6 +9,8 @@
         public const string NotFound = "NOT_FOUND";
         public const string Conflict = "CONFLICT";
         public const string InternalServerError = "INTERNAL_SERVER_ERROR";
+        public const string CurrentUserNotFound = "CURRENT_USER_NOT_FOUND";
+        public const string UserNotAllowedToConfirmBloodType = "USER_NOT_ALLOWED_TO_CONFIRM_BLOOD_TYPE";
 
 
         // Auth
@@ -92,6 +94,12 @@
         public const string StaffUpdateFailed = "STAFF_UPDATE_FAILED";
         public const string CitizenUpdateFailed = "CITIZEN_UPDATE_FAILED";
 
+        public const string BranchNotAllowedForDoctor = "BRANCH_NOT_ALLOWED_FOR_DOCTOR";
+        public const string HospitalNotAllowedForEmployee = "HOSPITAL_NOT_ALLOWED_FOR_EMPLOYEE";
+        public const string BranchManagerAssignmentMustBeManagedFromBranchManagement = "BRANCH_MANAGER_ASSIGNMENT_MUST_BE_MANAGED_FROM_BRANCH_MANAGEMENT";
+        public const string HospitalNotAllowedForBranchManager = "HOSPITAL_NOT_ALLOWED_FOR_BRANCH_MANAGER";
+        public const string LocationNotAllowedForAdmin = "LOCATION_NOT_ALLOWED_FOR_ADMIN";
+
         //--------------------------------------------------------------
 
         // Screening
@@ -126,10 +134,47 @@
         public const string BranchCreationFailed = "BRANCH_CREATION_FAILED";
         public const string BranchUpdateFailed = "BRANCH_UPDATE_FAILED";
         public const string BranchHasLinkedHospitals = "BRANCH_HAS_LINKED_HOSPITALS";
+
+        public const string InvalidBranchWorkingHours = "INVALID_BRANCH_WORKING_HOURS";
+        public const string DuplicateBranchWorkingDay = "DUPLICATE_BRANCH_WORKING_DAY";
+        public const string InvalidBranchWorkingTime = "INVALID_BRANCH_WORKING_TIME";
         //--------------------------------------------------------------
 
         // Hospital Management
         public const string HospitalAlreadyExists = "HOSPITAL_ALREADY_EXISTS";
         public const string BranchInactiveOrNotFound = "BRANCH_INACTIVE_OR_NOT_FOUND";
+        public const string HospitalHasLinkedBloodRequests = "HOSPITAL_HAS_LINKED_BLOOD_REQUESTS";
+
+        //--------------------------------------------------------------
+
+        // Blood Request
+        public const string BloodRequestNotFound = "BLOOD_REQUEST_NOT_FOUND";
+        public const string InvalidBloodRequestStatus = "INVALID_BLOOD_REQUEST_STATUS";
+        public const string BloodRequestCreationFailed = "BLOOD_REQUEST_CREATION_FAILED";
+
+        public const string BeneficiaryNotFound = "BENEFICIARY_NOT_FOUND";
+        public const string BeneficiaryRequired = "BENEFICIARY_REQUIRED";
+        public const string InvalidBeneficiaryNationalId = "INVALID_BENEFICIARY_NATIONAL_ID";
+
+        public const string DoctorNotFoundForHospital = "DOCTOR_NOT_FOUND_FOR_HOSPITAL";
+        public const string DoctorNotAssignedToRequest = "DOCTOR_NOT_ASSIGNED_TO_REQUEST";
+        public const string DoctorCannotReviewRequest = "DOCTOR_CANNOT_REVIEW_REQUEST";
+
+        public const string EmployeeBranchNotAssigned = "EMPLOYEE_BRANCH_NOT_ASSIGNED";
+        public const string BloodRequestBranchMismatch = "BLOOD_REQUEST_BRANCH_MISMATCH";
+        public const string EmployeeCannotReviewRequest = "EMPLOYEE_CANNOT_REVIEW_REQUEST";
+
+        public const string ClinicalNotesRequired = "CLINICAL_NOTES_REQUIRED";
+        public const string RejectionReasonRequired = "REJECTION_REASON_REQUIRED";
+        public const string CancellationReasonRequired = "CANCELLATION_REASON_REQUIRED";
+
+        public const string UnitsNeededInvalid = "UNITS_NEEDED_INVALID";
+        public const string NoAvailableBloodUnits = "NO_AVAILABLE_BLOOD_UNITS";
+        public const string BeneficiaryNotFoundInNationalRegistry = "BENEFICIARY_NOT_FOUND_IN_NATIONAL_REGISTRY";
+
+        public const string BloodTypeRequired = "BLOOD_TYPE_REQUIRED";
+        public const string UrgencyLevelRequired = "URGENCY_LEVEL_REQUIRED";
+
+        public const string NoReservedUnitsFound = "NO_RESERVED_UNITS_FOUND";
     }
 }

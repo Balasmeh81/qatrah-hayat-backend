@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QatratHayat.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using QatratHayat.Infrastructure.Persistence;
 namespace QatratHayat.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260508151728_fixHospitalManagment")]
+    partial class fixHospitalManagment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -229,10 +232,7 @@ namespace QatratHayat.Infrastructure.Migrations
                     b.Property<int>("BeneficiaryId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("BloodType")
-                        .HasColumnType("int");
-
-                    b.Property<int>("BloodTypeStatus")
+                    b.Property<int>("BloodType")
                         .HasColumnType("int");
 
                     b.Property<int>("BranchId")
@@ -261,12 +261,6 @@ namespace QatratHayat.Infrastructure.Migrations
                     b.Property<int>("DoctorId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("FulfilledAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("FulfilledByUserId")
-                        .HasColumnType("int");
-
                     b.Property<int>("HospitalId")
                         .HasColumnType("int");
 
@@ -275,16 +269,6 @@ namespace QatratHayat.Infrastructure.Migrations
 
                     b.Property<int?>("PublishedByUserId")
                         .HasColumnType("int");
-
-                    b.Property<DateTime?>("RejectedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("RejectedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RejectionReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("RelationshipType")
                         .HasColumnType("int");
@@ -295,13 +279,13 @@ namespace QatratHayat.Infrastructure.Migrations
                     b.Property<int>("RequesterUserId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("UnitsNeeded")
+                    b.Property<int>("UnitsNeeded")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("UrgencyLevel")
+                    b.Property<int>("UrgencyLevel")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -315,8 +299,6 @@ namespace QatratHayat.Infrastructure.Migrations
                     b.HasIndex("DoctorId");
 
                     b.HasIndex("HospitalId");
-
-                    b.HasIndex("RejectedByUserId");
 
                     b.HasIndex("RequesterUserId");
 
@@ -1987,11 +1969,6 @@ namespace QatratHayat.Infrastructure.Migrations
                         .HasForeignKey("HospitalId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("QatratHayat.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("RejectedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QatratHayat.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany("CreatedBloodRequests")

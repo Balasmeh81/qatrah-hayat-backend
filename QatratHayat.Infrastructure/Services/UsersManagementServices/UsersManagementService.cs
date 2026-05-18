@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using QatratHayat.Application.Common.DTOS;
 using QatratHayat.Application.Common.Exceptions;
+using QatratHayat.Application.Common.Interfaces;
 using QatratHayat.Application.Features.UsersManagement.DTOS;
 using QatratHayat.Application.Features.UsersManagement.Interfaces;
 using QatratHayat.Domain.Entities;
@@ -15,7 +16,7 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
     {
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
-
+        private readonly ICurrentUserService _currentUserService;
         private static readonly UserRole[] StaffRoles =
         {
             UserRole.Doctor,
@@ -26,11 +27,13 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
 
         public UsersManagementService(
             AppDbContext context,
-            UserManager<ApplicationUser> userManager
+            UserManager<ApplicationUser> userManager,
+            ICurrentUserService currentUserService
         )
         {
             _context = context;
             _userManager = userManager;
+            _currentUserService = currentUserService;
         }
 
         // ============================================================
@@ -246,7 +249,7 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
 
             ValidateStaffRole(dto.StaffRole);
 
-            //await ValidateStaffLocationAsync(dto.StaffRole, dto.BranchId, dto.HospitalId);
+            await ValidateStaffLocationAsync(dto.StaffRole, dto.BranchId, dto.HospitalId);
 
             var user = await GetUserBaseQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
@@ -418,7 +421,7 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
         {
             ValidateStaffRole(dto.StaffRole);
 
-            //await ValidateStaffLocationAsync(dto.StaffRole, dto.BranchId, dto.HospitalId);
+            await ValidateStaffLocationAsync(dto.StaffRole, dto.BranchId, dto.HospitalId);
 
             var user = await GetUserBaseQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
@@ -556,9 +559,9 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
         }
 
         public async Task<CitizenInfoResponseDto> UpdateCitizenAsync(
-            int userId,
-            UpdateCitizenRequestDto dto
-        )
+      int userId,
+      UpdateCitizenRequestDto dto
+  )
         {
             var user = await GetUserBaseQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
@@ -581,7 +584,10 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
                 );
             }
 
-            var emailOwner = await _userManager.FindByEmailAsync(dto.Email);
+            var email = dto.Email.Trim();
+            var phoneNumber = dto.PhoneNumber.Trim();
+
+            var emailOwner = await _userManager.FindByEmailAsync(email);
 
             if (emailOwner is not null && emailOwner.Id != user.Id)
             {
@@ -591,20 +597,29 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
                 );
             }
 
-            var donorProfile = await _context.DonorProfiles
-                .FirstOrDefaultAsync(d => d.UserId == user.Id);
+            var donorProfile = user.DonorProfile;
 
             if (donorProfile is null)
             {
                 throw new NotFoundException(
-                    "Donor profile was not found for this user.",
+                    "Donor profile was not found.",
                     ErrorCodes.DonorProfileNotFound
                 );
             }
 
+            var currentUserId = _currentUserService.UserId;
+
+            if (currentUserId is null)
+            {
+                throw new NotFoundException(
+                    "Current user was not found.",
+                    ErrorCodes.CurrentUserNotFound
+                );
+            }
+
             if (
-                dto.EligibilityStatus == EligibilityStatus.PermDeferred
-                && string.IsNullOrWhiteSpace(dto.PermanentDeferralReason)
+                dto.EligibilityStatus == EligibilityStatus.PermDeferred &&
+                string.IsNullOrWhiteSpace(dto.PermanentDeferralReason)
             )
             {
                 throw new BadRequestException(
@@ -613,23 +628,54 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
                 );
             }
 
+            var now = DateTime.UtcNow;
+
+            var bloodTypeChanged = donorProfile.BloodType != dto.BloodType;
+
+            var becameConfirmed =
+                donorProfile.BloodTypeStatus != BloodTypeStatus.Confirmed &&
+                dto.BloodTypeStatus == BloodTypeStatus.Confirmed;
+
             using var transaction = await _context.Database.BeginTransactionAsync();
 
-            user.Email = dto.Email;
-            user.UserName = dto.Email;
-            user.PhoneNumber = dto.PhoneNumber;
+            user.Email = email;
+            user.UserName = email;
+            user.NormalizedEmail = email.ToUpperInvariant();
+            user.NormalizedUserName = email.ToUpperInvariant();
+            user.PhoneNumber = phoneNumber;
             user.IsActive = dto.IsActive;
-            user.UpdatedAt = DateTime.UtcNow;
+            user.UpdatedAt = now;
 
+            donorProfile.BloodType = dto.BloodType;
             donorProfile.BloodTypeStatus = dto.BloodTypeStatus;
             donorProfile.EligibilityStatus = dto.EligibilityStatus;
-
             donorProfile.PermanentDeferralReason =
                 dto.EligibilityStatus == EligibilityStatus.PermDeferred
-                    ? dto.PermanentDeferralReason
+                    ? dto.PermanentDeferralReason?.Trim()
                     : null;
 
-            donorProfile.UpdatedAt = DateTime.UtcNow;
+            donorProfile.UpdatedAt = now;
+
+            if (dto.BloodTypeStatus == BloodTypeStatus.Confirmed)
+            {
+                await ValidateCurrentUserCanConfirmBloodTypeAsync(currentUserId.Value);
+
+                if (
+                    bloodTypeChanged ||
+                    becameConfirmed ||
+                    donorProfile.BloodTypeConfirmedAt is null ||
+                    donorProfile.BloodTypeConfirmedByEmployeeId is null
+                )
+                {
+                    donorProfile.BloodTypeConfirmedAt = now;
+                    donorProfile.BloodTypeConfirmedByEmployeeId = currentUserId.Value;
+                }
+            }
+            else
+            {
+                donorProfile.BloodTypeConfirmedAt = null;
+                donorProfile.BloodTypeConfirmedByEmployeeId = null;
+            }
 
             var updateResult = await _userManager.UpdateAsync(user);
 
@@ -649,7 +695,6 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
 
             return MapToCitizenInfoResponseDto(updatedUser, updatedRoles);
         }
-
         // ============================================================
         // Shared User Actions
         // ============================================================
@@ -1089,10 +1134,10 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
         }
 
         private async Task ValidateStaffLocationAsync(
-            UserRole staffRole,
-            int? branchId,
-            int? hospitalId
-        )
+         UserRole staffRole,
+         int? branchId,
+         int? hospitalId
+     )
         {
             if (staffRole == UserRole.Doctor)
             {
@@ -1104,8 +1149,18 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
                     );
                 }
 
+                if (branchId is not null)
+                {
+                    throw new BadRequestException(
+                        "Doctor users cannot be assigned to a branch.",
+                        ErrorCodes.BranchNotAllowedForDoctor
+                    );
+                }
+
                 var hospitalExists = await _context.Hospitals.AnyAsync(h =>
-                    h.Id == hospitalId.Value && h.IsActive && !h.IsDeleted
+                    h.Id == hospitalId.Value &&
+                    h.IsActive &&
+                    !h.IsDeleted
                 );
 
                 if (!hospitalExists)
@@ -1119,18 +1174,28 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
                 return;
             }
 
-            if (staffRole == UserRole.Employee || staffRole == UserRole.BranchManager)
+            if (staffRole == UserRole.Employee)
             {
                 if (branchId is null)
                 {
                     throw new BadRequestException(
-                        "Branch is required for employee and branch manager users.",
+                        "Branch is required for employee users.",
                         ErrorCodes.BranchRequiredForStaffRole
                     );
                 }
 
+                if (hospitalId is not null)
+                {
+                    throw new BadRequestException(
+                        "Employee users cannot be assigned to a hospital.",
+                        ErrorCodes.HospitalNotAllowedForEmployee
+                    );
+                }
+
                 var branchExists = await _context.Branches.AnyAsync(b =>
-                    b.Id == branchId.Value && b.IsActive && !b.IsDeleted
+                    b.Id == branchId.Value &&
+                    b.IsActive &&
+                    !b.IsDeleted
                 );
 
                 if (!branchExists)
@@ -1144,8 +1209,37 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
                 return;
             }
 
+            if (staffRole == UserRole.BranchManager)
+            {
+                if (branchId is not null)
+                {
+                    throw new BadRequestException(
+                        "Branch manager branch assignment must be managed from Branch Management.",
+                        ErrorCodes.BranchManagerAssignmentMustBeManagedFromBranchManagement
+                    );
+                }
+
+                if (hospitalId is not null)
+                {
+                    throw new BadRequestException(
+                        "Branch manager users cannot be assigned to a hospital.",
+                        ErrorCodes.HospitalNotAllowedForBranchManager
+                    );
+                }
+
+                return;
+            }
+
             if (staffRole == UserRole.Admin)
             {
+                if (branchId is not null || hospitalId is not null)
+                {
+                    throw new BadRequestException(
+                        "Admin users cannot be assigned to a branch or hospital.",
+                        ErrorCodes.LocationNotAllowedForAdmin
+                    );
+                }
+
                 return;
             }
 
@@ -1157,7 +1251,7 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
 
         private static int? GetBranchIdForRole(UserRole staffRole, int? branchId)
         {
-            return staffRole is UserRole.Employee or UserRole.BranchManager
+            return staffRole == UserRole.Employee
                 ? branchId
                 : null;
         }
@@ -1167,6 +1261,38 @@ namespace QatratHayat.Application.Features.UsersManagement.Services
             return staffRole == UserRole.Doctor
                 ? hospitalId
                 : null;
+        }
+        private async Task ValidateCurrentUserCanConfirmBloodTypeAsync(int currentUserId)
+        {
+            var currentUser = await _context.Users
+                .FirstOrDefaultAsync(u =>
+                    u.Id == currentUserId &&
+                    u.IsActive &&
+                    !u.IsDeleted
+                );
+
+            if (currentUser is null)
+            {
+                throw new NotFoundException(
+                    "Current user was not found.",
+                    ErrorCodes.CurrentUserNotFound
+                );
+            }
+
+            var roles = await _userManager.GetRolesAsync(currentUser);
+
+            var canConfirmBloodType =
+                roles.Contains(UserRole.Employee.ToString()) ||
+                roles.Contains(UserRole.BranchManager.ToString()) ||
+                roles.Contains(UserRole.Admin.ToString());
+
+            if (!canConfirmBloodType)
+            {
+                throw new BadRequestException(
+                    "Current user is not allowed to confirm blood type.",
+                    ErrorCodes.UserNotAllowedToConfirmBloodType
+                );
+            }
         }
 
         // ============================================================

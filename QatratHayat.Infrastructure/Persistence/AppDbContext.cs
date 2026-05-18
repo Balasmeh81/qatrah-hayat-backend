@@ -267,6 +267,11 @@ namespace QatratHayat.Infrastructure.Persistence
                       .WithMany()
                       .HasForeignKey(x => x.CancelledByUserId)
                       .OnDelete(DeleteBehavior.Restrict);
+                // N:1 A request may be rejected by one user
+                entity.HasOne<ApplicationUser>()
+                      .WithMany()
+                      .HasForeignKey(x => x.RejectedByUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
 
             });
 

@@ -17,15 +17,14 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
         {
             _context = context;
         }
+
         // ============================================================
         // Get Hospital Statistics
         // ============================================================
 
         public async Task<HospitalStatisticsResponseDto> GetStatisticsAsync()
         {
-            var hospitalsQuery = _context.Hospitals
-                .AsNoTracking()
-                .Where(h => !h.IsDeleted);
+            var hospitalsQuery = _context.Hospitals.AsNoTracking().Where(h => !h.IsDeleted);
 
             return new HospitalStatisticsResponseDto
             {
@@ -38,31 +37,35 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
                 LastUpdate = await hospitalsQuery
                     .OrderByDescending(h => h.UpdatedAt ?? h.CreatedAt)
                     .Select(h => (DateTime?)(h.UpdatedAt ?? h.CreatedAt))
-                    .FirstOrDefaultAsync()
+                    .FirstOrDefaultAsync(),
             };
         }
+
         // ============================================================
         // Get Available Doctors
         // ============================================================
 
         public async Task<List<AvailableDoctorDto>> GetAvailableDoctorsAsync(
-            int? currentHospitalId = null)
+            int? currentHospitalId = null
+        )
         {
             var doctorRoleName = UserRole.Doctor.ToString();
 
             var doctorsQuery =
                 from user in _context.Users.AsNoTracking()
-                join userRole in _context.UserRoles.AsNoTracking()
-                    on user.Id equals userRole.UserId
-                join role in _context.Roles.AsNoTracking()
-                    on userRole.RoleId equals role.Id
-                where role.Name == doctorRoleName
-                      && user.IsActive
-                      && !user.IsDeleted
-                      && (
-                          user.HospitalId == null ||
-                          (currentHospitalId.HasValue && user.HospitalId == currentHospitalId.Value)
-                      )
+                join userRole in _context.UserRoles.AsNoTracking() on user.Id equals userRole.UserId
+                join role in _context.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                where
+                    role.Name == doctorRoleName
+                    && user.IsActive
+                    && !user.IsDeleted
+                    && user.BranchId == null
+                    && (
+                        user.HospitalId == null
+                        || (
+                            currentHospitalId.HasValue && user.HospitalId == currentHospitalId.Value
+                        )
+                    )
                 select user;
 
             var availableDoctors = await doctorsQuery
@@ -83,12 +86,13 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
         // ============================================================
 
         public async Task<PagedResultDto<HospitalResponseDto>> GetAllHospitalsAsync(
-            HospitalQueryDto query)
+            HospitalQueryDto query
+        )
         {
             NormalizePaging(query);
 
-            var hospitalsQuery = _context.Hospitals
-                .AsNoTracking()
+            var hospitalsQuery = _context
+                .Hospitals.AsNoTracking()
                 .Include(h => h.Branch)
                 .Where(h => !h.IsDeleted)
                 .AsQueryable();
@@ -98,24 +102,23 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
                 var searchTerm = query.SearchTerm.Trim();
 
                 hospitalsQuery = hospitalsQuery.Where(h =>
-                    h.HospitalNameAr.Contains(searchTerm) ||
-                    h.HospitalNameEn.Contains(searchTerm) ||
-                    h.AddressAR.Contains(searchTerm) ||
-                    h.AddressEn.Contains(searchTerm) ||
-                    h.Branch.BranchNameAr.Contains(searchTerm) ||
-                    h.Branch.BranchNameEn.Contains(searchTerm));
+                    h.HospitalNameAr.Contains(searchTerm)
+                    || h.HospitalNameEn.Contains(searchTerm)
+                    || h.AddressAr.Contains(searchTerm)
+                    || h.AddressEn.Contains(searchTerm)
+                    || h.Branch.BranchNameAr.Contains(searchTerm)
+                    || h.Branch.BranchNameEn.Contains(searchTerm)
+                );
             }
 
             if (query.IsActive.HasValue)
             {
-                hospitalsQuery = hospitalsQuery.Where(h =>
-                    h.IsActive == query.IsActive.Value);
+                hospitalsQuery = hospitalsQuery.Where(h => h.IsActive == query.IsActive.Value);
             }
 
             if (query.BranchId.HasValue)
             {
-                hospitalsQuery = hospitalsQuery.Where(h =>
-                    h.BranchId == query.BranchId.Value);
+                hospitalsQuery = hospitalsQuery.Where(h => h.BranchId == query.BranchId.Value);
             }
 
             var totalCount = await hospitalsQuery.CountAsync();
@@ -126,16 +129,14 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
                 .Take(query.PageSize)
                 .ToListAsync();
 
-            var items = hospitals
-                .Select(MapHospitalToDto)
-                .ToList();
+            var items = hospitals.Select(MapHospitalToDto).ToList();
 
             return new PagedResultDto<HospitalResponseDto>
             {
                 Items = items,
                 PageNumber = query.PageNumber,
                 PageSize = query.PageSize,
-                TotalCount = totalCount
+                TotalCount = totalCount,
             };
         }
 
@@ -145,19 +146,14 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
 
         public async Task<HospitalResponseDto> GetHospitalByIdAsync(int hospitalId)
         {
-            var hospital = await _context.Hospitals
-                .AsNoTracking()
+            var hospital = await _context
+                .Hospitals.AsNoTracking()
                 .Include(h => h.Branch)
-                .FirstOrDefaultAsync(h =>
-                    h.Id == hospitalId &&
-                    !h.IsDeleted);
+                .FirstOrDefaultAsync(h => h.Id == hospitalId && !h.IsDeleted);
 
             if (hospital is null)
             {
-                throw new NotFoundException(
-                    "Hospital was not found.",
-                    ErrorCodes.HospitalNotFound
-                );
+                throw new NotFoundException("Hospital was not found.", ErrorCodes.HospitalNotFound);
             }
 
             return MapHospitalToDto(hospital);
@@ -180,21 +176,21 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
             {
                 HospitalNameAr = request.HospitalNameAr.Trim(),
                 HospitalNameEn = request.HospitalNameEn.Trim(),
-                AddressAR = request.AddressAR.Trim(),
+                AddressAr = request.AddressAr.Trim(),
                 AddressEn = request.AddressEn.Trim(),
                 BranchId = request.BranchId,
                 IsActive = true,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = null
+                UpdatedAt = null,
             };
 
             _context.Hospitals.Add(hospital);
 
             await _context.SaveChangesAsync();
 
-            var createdHospital = await _context.Hospitals
-                .AsNoTracking()
+            var createdHospital = await _context
+                .Hospitals.AsNoTracking()
                 .Include(h => h.Branch)
                 .FirstAsync(h => h.Id == hospital.Id);
 
@@ -207,19 +203,16 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
 
         public async Task<HospitalResponseDto> UpdateHospitalAsync(
             int hospitalId,
-            UpdateHospitalRequestDto request)
+            UpdateHospitalRequestDto request
+        )
         {
-            var hospital = await _context.Hospitals
-                .FirstOrDefaultAsync(h =>
-                    h.Id == hospitalId &&
-                    !h.IsDeleted);
+            var hospital = await _context.Hospitals.FirstOrDefaultAsync(h =>
+                h.Id == hospitalId && !h.IsDeleted
+            );
 
             if (hospital is null)
             {
-                throw new NotFoundException(
-                    "Hospital was not found.",
-                    ErrorCodes.HospitalNotFound
-                );
+                throw new NotFoundException("Hospital was not found.", ErrorCodes.HospitalNotFound);
             }
 
             await ValidateBranchIsActiveAsync(request.BranchId);
@@ -232,7 +225,7 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
 
             hospital.HospitalNameAr = request.HospitalNameAr.Trim();
             hospital.HospitalNameEn = request.HospitalNameEn.Trim();
-            hospital.AddressAR = request.AddressAR.Trim();
+            hospital.AddressAr = request.AddressAr.Trim();
             hospital.AddressEn = request.AddressEn.Trim();
             hospital.BranchId = request.BranchId;
             hospital.IsActive = request.IsActive;
@@ -240,8 +233,8 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
 
             await _context.SaveChangesAsync();
 
-            var updatedHospital = await _context.Hospitals
-                .AsNoTracking()
+            var updatedHospital = await _context
+                .Hospitals.AsNoTracking()
                 .Include(h => h.Branch)
                 .FirstAsync(h => h.Id == hospital.Id);
 
@@ -254,19 +247,34 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
 
         public async Task SoftDeleteHospitalAsync(int hospitalId)
         {
-            var hospital = await _context.Hospitals
-                .FirstOrDefaultAsync(h =>
-                    h.Id == hospitalId &&
-                    !h.IsDeleted);
+            var hospital = await _context.Hospitals.FirstOrDefaultAsync(h =>
+                h.Id == hospitalId && !h.IsDeleted
+            );
 
             if (hospital is null)
             {
-                throw new NotFoundException(
-                    "Hospital was not found.",
-                    ErrorCodes.HospitalNotFound
+                throw new NotFoundException("Hospital was not found.", ErrorCodes.HospitalNotFound);
+            }
+            var hasBloodRequests = await _context.BloodRequests.AnyAsync(br =>
+                br.HospitalId == hospitalId
+            );
+
+            if (hasBloodRequests)
+            {
+                throw new ConflictException(
+                    "Hospital cannot be deleted because it has linked blood requests.",
+                    ErrorCodes.HospitalHasLinkedBloodRequests
                 );
             }
+            var assignedDoctors = await _context
+                .Users.Where(u => u.HospitalId == hospitalId)
+                .ToListAsync();
 
+            foreach (var doctor in assignedDoctors)
+            {
+                doctor.HospitalId = null;
+                doctor.UpdatedAt = DateTime.UtcNow;
+            }
             hospital.IsDeleted = true;
             hospital.IsActive = false;
             hospital.UpdatedAt = DateTime.UtcNow;
@@ -280,17 +288,13 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
 
         public async Task ActivateHospitalAsync(int hospitalId)
         {
-            var hospital = await _context.Hospitals
-                .FirstOrDefaultAsync(h =>
-                    h.Id == hospitalId &&
-                    !h.IsDeleted);
+            var hospital = await _context.Hospitals.FirstOrDefaultAsync(h =>
+                h.Id == hospitalId && !h.IsDeleted
+            );
 
             if (hospital is null)
             {
-                throw new NotFoundException(
-                    "Hospital was not found.",
-                    ErrorCodes.HospitalNotFound
-                );
+                throw new NotFoundException("Hospital was not found.", ErrorCodes.HospitalNotFound);
             }
 
             await ValidateBranchIsActiveAsync(hospital.BranchId);
@@ -307,17 +311,13 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
 
         public async Task DeactivateHospitalAsync(int hospitalId)
         {
-            var hospital = await _context.Hospitals
-                .FirstOrDefaultAsync(h =>
-                    h.Id == hospitalId &&
-                    !h.IsDeleted);
+            var hospital = await _context.Hospitals.FirstOrDefaultAsync(h =>
+                h.Id == hospitalId && !h.IsDeleted
+            );
 
             if (hospital is null)
             {
-                throw new NotFoundException(
-                    "Hospital was not found.",
-                    ErrorCodes.HospitalNotFound
-                );
+                throw new NotFoundException("Hospital was not found.", ErrorCodes.HospitalNotFound);
             }
 
             hospital.IsActive = false;
@@ -332,11 +332,9 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
 
         private async Task ValidateBranchIsActiveAsync(int branchId)
         {
-            var branchExists = await _context.Branches
-                .AnyAsync(b =>
-                    b.Id == branchId &&
-                    b.IsActive &&
-                    !b.IsDeleted);
+            var branchExists = await _context.Branches.AnyAsync(b =>
+                b.Id == branchId && b.IsActive && !b.IsDeleted
+            );
 
             if (!branchExists)
             {
@@ -350,18 +348,17 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
         private async Task ValidateHospitalNameUniquenessAsync(
             string hospitalNameAr,
             string hospitalNameEn,
-            int? excludedHospitalId = null)
+            int? excludedHospitalId = null
+        )
         {
             var normalizedNameAr = hospitalNameAr.Trim();
             var normalizedNameEn = hospitalNameEn.Trim();
 
-            var exists = await _context.Hospitals
-                .AnyAsync(h =>
-                    !h.IsDeleted &&
-                    (h.HospitalNameAr == normalizedNameAr ||
-                     h.HospitalNameEn == normalizedNameEn) &&
-                    (!excludedHospitalId.HasValue ||
-                     h.Id != excludedHospitalId.Value));
+            var exists = await _context.Hospitals.AnyAsync(h =>
+                !h.IsDeleted
+                && (h.HospitalNameAr == normalizedNameAr || h.HospitalNameEn == normalizedNameEn)
+                && (!excludedHospitalId.HasValue || h.Id != excludedHospitalId.Value)
+            );
 
             if (exists)
             {
@@ -401,7 +398,7 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
                 Id = hospital.Id,
                 HospitalNameAr = hospital.HospitalNameAr,
                 HospitalNameEn = hospital.HospitalNameEn,
-                AddressAR = hospital.AddressAR,
+                AddressAr = hospital.AddressAr,
                 AddressEn = hospital.AddressEn,
                 IsActive = hospital.IsActive,
                 IsDeleted = hospital.IsDeleted,
@@ -409,7 +406,7 @@ namespace QatratHayat.Application.Features.HospitalManagement.Services
                 UpdatedAt = hospital.UpdatedAt,
                 BranchId = hospital.BranchId,
                 BranchNameAr = hospital.Branch?.BranchNameAr,
-                BranchNameEn = hospital.Branch?.BranchNameEn
+                BranchNameEn = hospital.Branch?.BranchNameEn,
             };
         }
     }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QatratHayat.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using QatratHayat.Infrastructure.Persistence;
 namespace QatratHayat.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260514132743_UpdateBloodRequestWorkflow")]
+    partial class UpdateBloodRequestWorkflow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -232,9 +235,6 @@ namespace QatratHayat.Infrastructure.Migrations
                     b.Property<int?>("BloodType")
                         .HasColumnType("int");
 
-                    b.Property<int>("BloodTypeStatus")
-                        .HasColumnType("int");
-
                     b.Property<int>("BranchId")
                         .HasColumnType("int");
 
@@ -259,12 +259,6 @@ namespace QatratHayat.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int>("DoctorId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("FulfilledAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("FulfilledByUserId")
                         .HasColumnType("int");
 
                     b.Property<int>("HospitalId")

@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using QatratHayat.Application.Common.Interfaces;
 using QatratHayat.Application.Common.Settings;
 using QatratHayat.Application.Features.Auth.Interfaces;
+using QatratHayat.Application.Features.BloodRequests.Interfaces;
+using QatratHayat.Application.Features.BloodRequests.Services;
 using QatratHayat.Application.Features.BranchManagement.Interfaces;
 using QatratHayat.Application.Features.BranchManagement.Services;
 using QatratHayat.Application.Features.HospitalManagement.Interfaces;
@@ -43,6 +45,7 @@ namespace QatratHayat.Infrastructure
                 .AddRoles<ApplicationRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
+            services.AddHttpContextAccessor();
 
             services.AddScoped<IJwtTokenService, JwtTokenService>();
             services.AddScoped<IAccountService, AccountService>();
@@ -53,6 +56,8 @@ namespace QatratHayat.Infrastructure
             services.AddScoped<IHospitalManagementService, HospitalManagementService>();
             services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
             services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<IBloodRequestService, BloodRequestService>();
             return services;
         }
     }
