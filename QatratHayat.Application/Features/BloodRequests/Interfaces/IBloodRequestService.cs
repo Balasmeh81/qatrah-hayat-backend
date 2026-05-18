@@ -34,6 +34,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Interfaces
             int requestId,
             DoctorReviewBloodRequestRequestDto dto
         );
+        Task<BloodRequestDetailsResponseDto> ConfirmReceivedAsync(int requestId);
 
         Task<BloodRequestDetailsResponseDto> EmployeeReviewAsync(
             int requestId,

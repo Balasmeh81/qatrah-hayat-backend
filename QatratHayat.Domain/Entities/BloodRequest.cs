@@ -11,6 +11,7 @@ namespace QatratHayat.Domain.Entities
         public RelationshipType RelationshipType { get; set; }
 
         public BloodType? BloodType { get; set; }
+        public BloodTypeStatus BloodTypeStatus { get; set; } = BloodTypeStatus.Provisional;
 
         public int? UnitsNeeded { get; set; }
 
@@ -35,6 +36,8 @@ namespace QatratHayat.Domain.Entities
         public DateTime? PublishedAt { get; set; }
 
         public int? PublishedByUserId { get; set; }
+        public DateTime? FulfilledAt { get; set; }
+        public int? FulfilledByUserId { get; set; }
 
         [MaxLength(500)]
         public string? RejectionReason { get; set; }

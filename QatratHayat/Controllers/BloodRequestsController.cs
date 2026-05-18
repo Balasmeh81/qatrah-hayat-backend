@@ -122,6 +122,16 @@ namespace QatratHayat.API.Controllers.BloodRequestsControllers
 
             return Ok(result);
         }
+        [HttpPatch("{requestId:int}/confirm-received")]
+        [Authorize(Roles = "Doctor")]
+        public async Task<ActionResult<BloodRequestDetailsResponseDto>> ConfirmBloodRequestReceived(
+    [FromRoute] int requestId
+)
+        {
+            var result = await _bloodRequestService.ConfirmReceivedAsync(requestId);
+
+            return Ok(result);
+        }
 
         // ============================================================
         // Employee / Branch Manager Endpoints

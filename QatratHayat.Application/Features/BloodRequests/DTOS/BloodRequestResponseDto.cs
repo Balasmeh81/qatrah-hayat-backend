@@ -9,6 +9,7 @@ namespace QatratHayat.Application.Features.BloodRequests.DTOS
         public RelationshipType RelationshipType { get; set; }
 
         public BloodType? BloodType { get; set; }
+        public BloodTypeStatus BloodTypeStatus { get; set; }
 
         public string? BloodTypeDisplayName { get; set; }
 

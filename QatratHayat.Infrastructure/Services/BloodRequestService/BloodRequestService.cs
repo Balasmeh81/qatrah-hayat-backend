@@ -36,13 +36,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
         {
             var currentUserId = GetCurrentUserIdOrThrow();
 
-            var citizen = await _context.Users
-                .Include(u => u.DonorProfile)
-                .FirstOrDefaultAsync(u =>
-                    u.Id == currentUserId &&
-                    u.IsActive &&
-                    !u.IsDeleted
-                );
+            var citizen = await _context
+                .Users.Include(u => u.DonorProfile)
+                .FirstOrDefaultAsync(u => u.Id == currentUserId && u.IsActive && !u.IsDeleted);
 
             if (citizen is null)
             {
@@ -68,7 +64,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 FullNameAr = citizen.FullNameAr,
                 FullNameEn = citizen.FullNameEn,
                 BloodType = citizen.DonorProfile.BloodType,
-                BloodTypeDisplayName = citizen.DonorProfile.BloodType.ToDisplayName()
+                BloodTypeDisplayName = citizen.DonorProfile.BloodType.ToDisplayName(),
             };
         }
 
@@ -78,12 +74,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
         {
             var currentUserId = GetCurrentUserIdOrThrow();
 
-            var requester = await _context.Users
-                .FirstOrDefaultAsync(u =>
-                    u.Id == currentUserId &&
-                    u.IsActive &&
-                    !u.IsDeleted
-                );
+            var requester = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == currentUserId && u.IsActive && !u.IsDeleted
+            );
 
             if (requester is null)
             {
@@ -113,8 +106,8 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 );
             }
 
-            var registryRecord = await _context.NationalRegistries
-                .AsNoTracking()
+            var registryRecord = await _context
+                .NationalRegistries.AsNoTracking()
                 .FirstOrDefaultAsync(r => r.NationalId == nationalId);
 
             if (registryRecord is null)
@@ -131,33 +124,24 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 FullNameAr = registryRecord.FullNameAr,
                 FullNameEn = registryRecord.FullNameEn,
                 BloodType = registryRecord.BloodType,
-                BloodTypeDisplayName = registryRecord.BloodType.ToDisplayName()
-
+                BloodTypeDisplayName = registryRecord.BloodType.ToDisplayName(),
             };
         }
 
-        public async Task<BloodRequestDetailsResponseDto> CreateAsync(
-            CreateBloodRequestDto dto
-        )
+        public async Task<BloodRequestDetailsResponseDto> CreateAsync(CreateBloodRequestDto dto)
         {
             if (dto is null)
             {
-                throw new BadRequestException(
-                    "Request body is required.",
-                    ErrorCodes.BadRequest
-                );
+                throw new BadRequestException("Request body is required.", ErrorCodes.BadRequest);
             }
 
             ValidateCreateRequest(dto);
 
             var currentUserId = GetCurrentUserIdOrThrow();
 
-            var requester = await _context.Users
-                .FirstOrDefaultAsync(u =>
-                    u.Id == currentUserId &&
-                    u.IsActive &&
-                    !u.IsDeleted
-                );
+            var requester = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == currentUserId && u.IsActive && !u.IsDeleted
+            );
 
             if (requester is null)
             {
@@ -169,13 +153,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
             await ValidateUserHasRoleAsync(requester, UserRole.Citizen);
 
-            var hospital = await _context.Hospitals
-                .Include(h => h.Branch)
-                .FirstOrDefaultAsync(h =>
-                    h.Id == dto.HospitalId &&
-                    h.IsActive &&
-                    !h.IsDeleted
-                );
+            var hospital = await _context
+                .Hospitals.Include(h => h.Branch)
+                .FirstOrDefaultAsync(h => h.Id == dto.HospitalId && h.IsActive && !h.IsDeleted);
 
             if (hospital is null)
             {
@@ -193,13 +173,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 );
             }
 
-            var doctor = await _context.Users
-                .FirstOrDefaultAsync(u =>
-                    u.Id == dto.DoctorId &&
-                    u.HospitalId == dto.HospitalId &&
-                    u.IsActive &&
-                    !u.IsDeleted
-                );
+            var doctor = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == dto.DoctorId && u.HospitalId == dto.HospitalId && u.IsActive && !u.IsDeleted
+            );
 
             if (doctor is null)
             {
@@ -218,6 +194,10 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 dto.RelationshipType,
                 dto.BeneficiaryNationalId
             );
+            var bloodTypeSnapshot = await GetBeneficiaryBloodTypeSnapshotAsync(
+                beneficiary,
+                requester
+            );
 
             var now = DateTime.UtcNow;
 
@@ -225,7 +205,8 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             {
                 RelationshipType = dto.RelationshipType,
 
-                BloodType = null,
+                BloodType = bloodTypeSnapshot.BloodType,
+                BloodTypeStatus = bloodTypeSnapshot.BloodTypeStatus,
                 UnitsNeeded = null,
                 UrgencyLevel = null,
 
@@ -253,7 +234,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 BranchId = hospital.BranchId,
 
                 RequesterUserId = requester.Id,
-                DoctorId = doctor.Id
+                DoctorId = doctor.Id,
             };
 
             _context.BloodRequests.Add(request);
@@ -296,12 +277,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
             var currentUserId = GetCurrentUserIdOrThrow();
 
-            var doctor = await _context.Users
-                .FirstOrDefaultAsync(u =>
-                    u.Id == currentUserId &&
-                    u.IsActive &&
-                    !u.IsDeleted
-                );
+            var doctor = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == currentUserId && u.IsActive && !u.IsDeleted
+            );
 
             if (doctor is null)
             {
@@ -313,8 +291,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
             await ValidateUserHasRoleAsync(doctor, UserRole.Doctor);
 
-            var requestQuery = GetBloodRequestBaseQuery()
-                .Where(r => r.DoctorId == currentUserId);
+            var requestQuery = GetBloodRequestBaseQuery().Where(r => r.DoctorId == currentUserId);
 
             requestQuery = ApplyFilters(requestQuery, query);
 
@@ -328,20 +305,14 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
         {
             if (dto is null)
             {
-                throw new BadRequestException(
-                    "Request body is required.",
-                    ErrorCodes.BadRequest
-                );
+                throw new BadRequestException("Request body is required.", ErrorCodes.BadRequest);
             }
 
             var currentUserId = GetCurrentUserIdOrThrow();
 
-            var doctor = await _context.Users
-                .FirstOrDefaultAsync(u =>
-                    u.Id == currentUserId &&
-                    u.IsActive &&
-                    !u.IsDeleted
-                );
+            var doctor = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == currentUserId && u.IsActive && !u.IsDeleted
+            );
 
             if (doctor is null)
             {
@@ -384,12 +355,33 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
             if (dto.IsApproved)
             {
-                if (dto.BloodType is null)
+                if (request.BloodTypeStatus == BloodTypeStatus.Confirmed)
                 {
-                    throw new BadRequestException(
-                        "Blood type is required when approving a request.",
-                        ErrorCodes.BloodTypeRequired
-                    );
+                    if (request.BloodType is null)
+                    {
+                        throw new BadRequestException(
+                            "Confirmed blood type is missing.",
+                            ErrorCodes.BloodTypeRequired
+                        );
+                    }
+
+                    if (dto.BloodType is not null && dto.BloodType.Value != request.BloodType.Value)
+                    {
+                        throw new BadRequestException(
+                            "Confirmed blood type cannot be changed by doctor.",
+                            ErrorCodes.InvalidBloodRequestStatus
+                        );
+                    }
+                }
+                else
+                {
+                    if (dto.BloodType is null)
+                    {
+                        throw new BadRequestException(
+                            "Blood type is required when approving a request.",
+                            ErrorCodes.BloodTypeRequired
+                        );
+                    }
                 }
 
                 if (dto.UnitsNeeded is null || dto.UnitsNeeded.Value <= 0)
@@ -408,7 +400,11 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                     );
                 }
 
-                request.BloodType = dto.BloodType.Value;
+                if (request.BloodTypeStatus != BloodTypeStatus.Confirmed)
+                {
+                    request.BloodType = dto.BloodType!.Value;
+                    request.BloodTypeStatus = BloodTypeStatus.Confirmed;
+                }
                 request.UnitsNeeded = dto.UnitsNeeded.Value;
                 request.UrgencyLevel = dto.UrgencyLevel.Value;
                 request.ClinicalNotes = dto.ClinicalNotes?.Trim();
@@ -416,6 +412,12 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 request.RequestStatus = RequestStatus.PendingBloodBank;
                 request.DoctorApprovedAt = now;
                 request.UpdatedAt = now;
+
+                // Automatic inventory check after doctor approval.
+                // This will move the request to:
+                // - PartiallyAllocated if compatible units are found.
+                // - Shortage if no compatible units are available.
+                await ReserveAvailableCompatibleUnitsTemporarilyAsync(request);
 
                 await _context.SaveChangesAsync();
 
@@ -440,6 +442,83 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
             return await GetDetailsByIdInternalAsync(request.Id);
         }
+        public async Task<BloodRequestDetailsResponseDto> ConfirmReceivedAsync(int requestId)
+        {
+            var currentUserId = GetCurrentUserIdOrThrow();
+
+            var doctor = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == currentUserId && u.IsActive && !u.IsDeleted
+            );
+
+            if (doctor is null)
+            {
+                throw new NotFoundException(
+                    "Current user was not found.",
+                    ErrorCodes.CurrentUserNotFound
+                );
+            }
+
+            await ValidateUserHasRoleAsync(doctor, UserRole.Doctor);
+
+            var request = await GetBloodRequestBaseQuery()
+                .FirstOrDefaultAsync(r => r.Id == requestId);
+
+            if (request is null)
+            {
+                throw new NotFoundException(
+                    "Blood request was not found.",
+                    ErrorCodes.BloodRequestNotFound
+                );
+            }
+
+            if (request.DoctorId != currentUserId)
+            {
+                throw new BadRequestException(
+                    "This doctor is not assigned to this blood request.",
+                    ErrorCodes.DoctorNotAssignedToRequest
+                );
+            }
+
+            if (request.RequestStatus != RequestStatus.Processing)
+            {
+                throw new BadRequestException(
+                    "Only processing blood requests can be confirmed as received.",
+                    ErrorCodes.InvalidBloodRequestStatus
+                );
+            }
+
+            var allocatedUnits = await _context.BloodUnits
+                .Where(u =>
+                    u.AllocatedToRequestId == request.Id
+                    && u.UnitStatus == UnitStatus.Allocated
+                )
+                .ToListAsync();
+
+            if (!allocatedUnits.Any())
+            {
+                throw new BadRequestException(
+                    "No allocated blood units were found for this request.",
+                    ErrorCodes.NoReservedUnitsFound
+                );
+            }
+
+            var now = DateTime.UtcNow;
+
+            foreach (var unit in allocatedUnits)
+            {
+                unit.UnitStatus = UnitStatus.Used;
+                unit.UpdatedAt = now;
+            }
+
+            request.FulfilledByUserId = currentUserId;
+            request.RequestStatus = RequestStatus.Fulfilled;
+            request.FulfilledAt = now;
+            request.UpdatedAt = now;
+
+            await _context.SaveChangesAsync();
+
+            return await GetDetailsByIdInternalAsync(request.Id);
+        }
 
         // ============================================================
         // Employee / Branch Manager Methods
@@ -455,8 +534,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
             var branchId = await GetOperationalBranchIdForUserAsync(currentUserId);
 
-            var requestQuery = GetBloodRequestBaseQuery()
-                .Where(r => r.BranchId == branchId);
+            var requestQuery = GetBloodRequestBaseQuery().Where(r => r.BranchId == branchId);
 
             requestQuery = ApplyFilters(requestQuery, query);
 
@@ -468,14 +546,6 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             EmployeeReviewBloodRequestRequestDto dto
         )
         {
-            if (dto is null)
-            {
-                throw new BadRequestException(
-                    "Request body is required.",
-                    ErrorCodes.BadRequest
-                );
-            }
-
             var currentUserId = GetCurrentUserIdOrThrow();
 
             var branchId = await GetOperationalBranchIdForUserAsync(currentUserId);
@@ -500,30 +570,20 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             }
 
             if (
-                request.RequestStatus != RequestStatus.PendingBloodBank &&
-                request.RequestStatus != RequestStatus.Shortage &&
-                request.RequestStatus != RequestStatus.PartiallyAllocated
+                request.RequestStatus != RequestStatus.PendingBloodBank
+                && request.RequestStatus != RequestStatus.Shortage
+                && request.RequestStatus != RequestStatus.PartiallyAllocated
             )
             {
                 throw new BadRequestException(
-                    "Only pending blood bank, shortage, or partially allocated requests can be reviewed.",
+                    "Only pending blood bank, shortage, or partially allocated requests can be rechecked.",
                     ErrorCodes.InvalidBloodRequestStatus
                 );
             }
 
             EnsureRequestIsMedicallyCompleted(request);
 
-            if (!dto.ReserveAvailableUnits)
-            {
-                request.RequestStatus = RequestStatus.Shortage;
-                request.UpdatedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-
-                return await GetDetailsByIdInternalAsync(request.Id);
-            }
-
-            await ReserveAvailableUnitsTemporarilyAsync(request);
+            await ReserveAvailableCompatibleUnitsTemporarilyAsync(request);
 
             await _context.SaveChangesAsync();
 
@@ -537,10 +597,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
         {
             if (dto is null)
             {
-                throw new BadRequestException(
-                    "Request body is required.",
-                    ErrorCodes.BadRequest
-                );
+                throw new BadRequestException("Request body is required.", ErrorCodes.BadRequest);
             }
 
             if (!dto.ConfirmReservedUnits)
@@ -586,10 +643,10 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
             var now = DateTime.UtcNow;
 
-            var reservedUnits = await _context.BloodUnits
-                .Where(u =>
-                    u.AllocatedToRequestId == request.Id &&
-                    u.UnitStatus == UnitStatus.PartiallyAllocated
+            var reservedUnits = await _context
+                .BloodUnits.Where(u =>
+                    u.AllocatedToRequestId == request.Id
+                    && u.UnitStatus == UnitStatus.PartiallyAllocated
                 )
                 .ToListAsync();
 
@@ -608,22 +665,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 unit.UpdatedAt = now;
             }
 
-            var totalFinalAllocated = await _context.BloodUnits
-                .CountAsync(u =>
-                    u.AllocatedToRequestId == request.Id &&
-                    (
-                        u.UnitStatus == UnitStatus.Allocated ||
-                        u.UnitStatus == UnitStatus.Used
-                    )
-                );
-
-            totalFinalAllocated += reservedUnits.Count;
-
-            request.RequestStatus =
-                totalFinalAllocated >= request.UnitsNeeded!.Value
-                    ? RequestStatus.Processing
-                    : RequestStatus.PartiallyAllocated;
-
+            request.RequestStatus = RequestStatus.Processing;
             request.UpdatedAt = now;
 
             await _context.SaveChangesAsync();
@@ -631,9 +673,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             return await GetDetailsByIdInternalAsync(request.Id);
         }
 
-        public async Task<BloodRequestDetailsResponseDto> PublishAsync(
-            int requestId
-        )
+        public async Task<BloodRequestDetailsResponseDto> PublishAsync(int requestId)
         {
             var currentUserId = GetCurrentUserIdOrThrow();
 
@@ -659,12 +699,21 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             }
 
             if (
-                request.RequestStatus != RequestStatus.Shortage &&
-                request.RequestStatus != RequestStatus.PartiallyAllocated
+                request.RequestStatus != RequestStatus.Shortage
+                && request.RequestStatus != RequestStatus.PartiallyAllocated
             )
             {
                 throw new BadRequestException(
                     "Only shortage or partially allocated requests can be published.",
+                    ErrorCodes.InvalidBloodRequestStatus
+                );
+            }
+            var unitsRemaining = await CalculateUnitsRemainingAsync(request);
+
+            if (unitsRemaining <= 0)
+            {
+                throw new BadRequestException(
+                    "This blood request cannot be published because there are no remaining units needed.",
                     ErrorCodes.InvalidBloodRequestStatus
                 );
             }
@@ -692,10 +741,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
         {
             if (dto is null)
             {
-                throw new BadRequestException(
-                    "Request body is required.",
-                    ErrorCodes.BadRequest
-                );
+                throw new BadRequestException("Request body is required.", ErrorCodes.BadRequest);
             }
 
             if (string.IsNullOrWhiteSpace(dto.RejectionReason))
@@ -729,14 +775,15 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 );
             }
 
-            if (
-                request.RequestStatus == RequestStatus.Fulfilled ||
-                request.RequestStatus == RequestStatus.Cancelled ||
-                request.RequestStatus == RequestStatus.Rejected
-            )
+            var canReject =
+                request.RequestStatus == RequestStatus.PendingBloodBank
+                || request.RequestStatus == RequestStatus.Shortage
+                || request.RequestStatus == RequestStatus.PartiallyAllocated;
+
+            if (!canReject)
             {
                 throw new BadRequestException(
-                    "This blood request cannot be rejected in its current status.",
+                    "Only pending blood bank, shortage, or partially allocated requests can be rejected.",
                     ErrorCodes.InvalidBloodRequestStatus
                 );
             }
@@ -760,9 +807,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
         // Shared Methods
         // ============================================================
 
-        public async Task<BloodRequestDetailsResponseDto> GetByIdAsync(
-            int requestId
-        )
+        public async Task<BloodRequestDetailsResponseDto> GetByIdAsync(int requestId)
         {
             var currentUserId = GetCurrentUserIdOrThrow();
 
@@ -789,10 +834,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
         {
             if (dto is null)
             {
-                throw new BadRequestException(
-                    "Request body is required.",
-                    ErrorCodes.BadRequest
-                );
+                throw new BadRequestException("Request body is required.", ErrorCodes.BadRequest);
             }
 
             if (string.IsNullOrWhiteSpace(dto.CancellationReason))
@@ -819,9 +861,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             await EnsureCanAccessRequestAsync(currentUserId, request);
 
             if (
-                request.RequestStatus == RequestStatus.Fulfilled ||
-                request.RequestStatus == RequestStatus.Cancelled ||
-                request.RequestStatus == RequestStatus.Rejected
+                request.RequestStatus == RequestStatus.Fulfilled
+                || request.RequestStatus == RequestStatus.Cancelled
+                || request.RequestStatus == RequestStatus.Rejected
             )
             {
                 throw new BadRequestException(
@@ -830,12 +872,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 );
             }
 
-            var currentUser = await _context.Users
-                .FirstOrDefaultAsync(u =>
-                    u.Id == currentUserId &&
-                    u.IsActive &&
-                    !u.IsDeleted
-                );
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == currentUserId && u.IsActive && !u.IsDeleted
+            );
 
             if (currentUser is null)
             {
@@ -847,16 +886,39 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
             var roles = await _userManager.GetRolesAsync(currentUser);
 
-            if (
-                roles.Contains(UserRole.Doctor.ToString()) &&
-                request.DoctorId == currentUserId &&
-                request.RequestStatus != RequestStatus.PendingDoctorReview
-            )
+            if (roles.Contains(UserRole.Doctor.ToString()) && request.DoctorId == currentUserId)
             {
-                throw new BadRequestException(
-                    "Doctor can cancel only pending doctor review requests.",
-                    ErrorCodes.InvalidBloodRequestStatus
-                );
+                var canDoctorCancel =
+                    request.RequestStatus == RequestStatus.PendingDoctorReview
+                    || request.RequestStatus == RequestStatus.PendingBloodBank;
+
+                if (!canDoctorCancel)
+                {
+                    throw new BadRequestException(
+                        "Doctor can cancel only pending doctor review or pending blood bank requests.",
+                        ErrorCodes.InvalidBloodRequestStatus
+                    );
+                }
+
+                if (request.RequestStatus == RequestStatus.PendingBloodBank)
+                {
+                    var hasBlockingBloodUnitAction = await _context.BloodUnits.AnyAsync(u =>
+                        u.AllocatedToRequestId == request.Id
+                        && (
+                            u.UnitStatus == UnitStatus.PartiallyAllocated
+                            || u.UnitStatus == UnitStatus.Allocated
+                            || u.UnitStatus == UnitStatus.Used
+                        )
+                    );
+
+                    if (hasBlockingBloodUnitAction)
+                    {
+                        throw new BadRequestException(
+                            "Doctor cannot cancel this request because blood units have already been reserved, allocated, or used.",
+                            ErrorCodes.InvalidBloodRequestStatus
+                        );
+                    }
+                }
             }
 
             await ReleaseTemporaryReservedUnitsAsync(request.Id);
@@ -886,11 +948,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
         {
             if (relationshipType == RelationshipType.Self)
             {
-                var existingSelfBeneficiary = await _context.Beneficiaries
-                    .FirstOrDefaultAsync(b =>
-                        b.UserId == requester.Id ||
-                        b.NationalId == requester.NationalId
-                    );
+                var existingSelfBeneficiary = await _context.Beneficiaries.FirstOrDefaultAsync(b =>
+                    b.UserId == requester.Id || b.NationalId == requester.NationalId
+                );
 
                 if (existingSelfBeneficiary is not null)
                 {
@@ -911,7 +971,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                     CreatedAt = DateTime.UtcNow,
                     UserId = requester.Id,
                     MergedIntoUserId = requester.Id,
-                    MergedAt = DateTime.UtcNow
+                    MergedAt = DateTime.UtcNow,
                 };
 
                 _context.Beneficiaries.Add(selfBeneficiary);
@@ -939,16 +999,17 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 );
             }
 
-            var existingBeneficiary = await _context.Beneficiaries
-                .FirstOrDefaultAsync(b => b.NationalId == nationalId);
+            var existingBeneficiary = await _context.Beneficiaries.FirstOrDefaultAsync(b =>
+                b.NationalId == nationalId
+            );
 
             if (existingBeneficiary is not null)
             {
                 return existingBeneficiary;
             }
 
-            var registryRecord = await _context.NationalRegistries
-                .AsNoTracking()
+            var registryRecord = await _context
+                .NationalRegistries.AsNoTracking()
                 .FirstOrDefaultAsync(r => r.NationalId == nationalId);
 
             if (registryRecord is null)
@@ -959,12 +1020,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 );
             }
 
-            var existingUser = await _context.Users
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u =>
-                    u.NationalId == nationalId &&
-                    !u.IsDeleted
-                );
+            var existingUser = await _context
+                .Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.NationalId == nationalId && !u.IsDeleted);
 
             var beneficiary = new Beneficiary
             {
@@ -975,7 +1033,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 CreatedAt = DateTime.UtcNow,
                 UserId = existingUser?.Id,
                 MergedIntoUserId = existingUser?.Id,
-                MergedAt = existingUser is null ? null : DateTime.UtcNow
+                MergedAt = existingUser is null ? null : DateTime.UtcNow,
             };
 
             _context.Beneficiaries.Add(beneficiary);
@@ -985,25 +1043,93 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             return beneficiary;
         }
 
+        private async Task<(
+            BloodType? BloodType,
+            BloodTypeStatus BloodTypeStatus
+        )> GetBeneficiaryBloodTypeSnapshotAsync(Beneficiary beneficiary, ApplicationUser requester)
+        {
+            if (beneficiary.NationalId == requester.NationalId)
+            {
+                var requesterWithProfile = await _context
+                    .Users.Include(u => u.DonorProfile)
+                    .FirstOrDefaultAsync(u => u.Id == requester.Id && u.IsActive && !u.IsDeleted);
+
+                if (requesterWithProfile?.DonorProfile is null)
+                {
+                    throw new NotFoundException(
+                        "Donor profile was not found.",
+                        ErrorCodes.DonorProfileNotFound
+                    );
+                }
+
+                return (
+                    requesterWithProfile.DonorProfile.BloodType,
+                    requesterWithProfile.DonorProfile.BloodTypeStatus
+                );
+            }
+
+            var beneficiaryUser = await _context
+                .Users.Include(u => u.DonorProfile)
+                .FirstOrDefaultAsync(u =>
+                    u.NationalId == beneficiary.NationalId && u.IsActive && !u.IsDeleted
+                );
+
+            if (beneficiaryUser?.DonorProfile is not null)
+            {
+                return (
+                    beneficiaryUser.DonorProfile.BloodType,
+                    beneficiaryUser.DonorProfile.BloodTypeStatus
+                );
+            }
+
+            var registryRecord = await _context
+                .NationalRegistries.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.NationalId == beneficiary.NationalId);
+
+            if (registryRecord is null)
+            {
+                throw new NotFoundException(
+                    "Beneficiary was not found in national registry.",
+                    ErrorCodes.BeneficiaryNotFoundInNationalRegistry
+                );
+            }
+
+            return (registryRecord.BloodType, BloodTypeStatus.Provisional);
+        }
+
         // ============================================================
         // Inventory / Reservation / Allocation Helpers
         // ============================================================
+        private async Task<int> CalculateUnitsRemainingAsync(BloodRequest request)
+        {
+            var reservedOrAllocatedCount = await _context.BloodUnits.CountAsync(u =>
+                u.AllocatedToRequestId == request.Id
+                && (
+                    u.UnitStatus == UnitStatus.PartiallyAllocated
+                    || u.UnitStatus == UnitStatus.Allocated
+                    || u.UnitStatus == UnitStatus.Used
+                )
+            );
 
-        private async Task ReserveAvailableUnitsTemporarilyAsync(BloodRequest request)
+            var unitsNeeded = request.UnitsNeeded ?? 0;
+
+            return Math.Max(unitsNeeded - reservedOrAllocatedCount, 0);
+        }
+
+        private async Task ReserveAvailableCompatibleUnitsTemporarilyAsync(BloodRequest request)
         {
             EnsureRequestIsMedicallyCompleted(request);
 
             var now = DateTime.UtcNow;
 
-            var reservedOrAllocatedCount = await _context.BloodUnits
-                .CountAsync(u =>
-                    u.AllocatedToRequestId == request.Id &&
-                    (
-                        u.UnitStatus == UnitStatus.PartiallyAllocated ||
-                        u.UnitStatus == UnitStatus.Allocated ||
-                        u.UnitStatus == UnitStatus.Used
-                    )
-                );
+            var reservedOrAllocatedCount = await _context.BloodUnits.CountAsync(u =>
+                u.AllocatedToRequestId == request.Id
+                && (
+                    u.UnitStatus == UnitStatus.PartiallyAllocated
+                    || u.UnitStatus == UnitStatus.Allocated
+                    || u.UnitStatus == UnitStatus.Used
+                )
+            );
 
             var remainingUnits = request.UnitsNeeded!.Value - reservedOrAllocatedCount;
 
@@ -1014,15 +1140,20 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 return;
             }
 
-            var availableUnits = await _context.BloodUnits
-                .Where(u =>
-                    u.BranchId == request.BranchId &&
-                    u.BloodType == request.BloodType!.Value &&
-                    u.UnitStatus == UnitStatus.Available &&
-                    u.ExpiresAt > now &&
-                    u.AllocatedToRequestId == null
+            var compatibleBloodTypes = GetCompatibleDonorBloodTypes(request.BloodType!.Value);
+
+            var requestedBloodType = request.BloodType.Value;
+
+            var availableUnits = await _context
+                .BloodUnits.Where(u =>
+                    u.BranchId == request.BranchId
+                    && compatibleBloodTypes.Contains(u.BloodType)
+                    && u.UnitStatus == UnitStatus.Available
+                    && u.ExpiresAt > now
+                    && u.AllocatedToRequestId == null
                 )
-                .OrderBy(u => u.ExpiresAt)
+                .OrderBy(u => u.BloodType == requestedBloodType ? 0 : 1)
+                .ThenBy(u => u.ExpiresAt)
                 .Take(remainingUnits)
                 .ToListAsync();
 
@@ -1030,10 +1161,6 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             {
                 request.RequestStatus = RequestStatus.Shortage;
                 request.UpdatedAt = now;
-
-                // TODO: Notify employee/branch manager that no units are available.
-                // Example:
-                // await _notificationService.NotifyBranchStaffAboutShortageAsync(request.Id, request.BranchId);
 
                 return;
             }
@@ -1048,22 +1175,68 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
             request.RequestStatus = RequestStatus.PartiallyAllocated;
             request.UpdatedAt = now;
+        }
 
-            var totalReservedAfter = reservedOrAllocatedCount + availableUnits.Count;
-
-            if (totalReservedAfter < request.UnitsNeeded.Value)
+        private static IReadOnlyCollection<BloodType> GetCompatibleDonorBloodTypes(
+            BloodType recipientBloodType
+        )
+        {
+            return recipientBloodType switch
             {
-                // Still partially reserved, and missing units remain.
-                request.RequestStatus = RequestStatus.PartiallyAllocated;
-            }
+                BloodType.APositive => new[]
+                {
+                    BloodType.APositive,
+                    BloodType.ANegative,
+                    BloodType.OPositive,
+                    BloodType.ONegative,
+                },
+
+                BloodType.ANegative => new[] { BloodType.ANegative, BloodType.ONegative },
+
+                BloodType.BPositive => new[]
+                {
+                    BloodType.BPositive,
+                    BloodType.BNegative,
+                    BloodType.OPositive,
+                    BloodType.ONegative,
+                },
+
+                BloodType.BNegative => new[] { BloodType.BNegative, BloodType.ONegative },
+
+                BloodType.ABPositive => new[]
+                {
+                    BloodType.ABPositive,
+                    BloodType.ABNegative,
+                    BloodType.APositive,
+                    BloodType.ANegative,
+                    BloodType.BPositive,
+                    BloodType.BNegative,
+                    BloodType.OPositive,
+                    BloodType.ONegative,
+                },
+
+                BloodType.ABNegative => new[]
+                {
+                    BloodType.ABNegative,
+                    BloodType.ANegative,
+                    BloodType.BNegative,
+                    BloodType.ONegative,
+                },
+
+                BloodType.OPositive => new[] { BloodType.OPositive, BloodType.ONegative },
+
+                BloodType.ONegative => new[] { BloodType.ONegative },
+
+                _ => Array.Empty<BloodType>(),
+            };
         }
 
         private async Task ReleaseTemporaryReservedUnitsAsync(int requestId)
         {
-            var reservedUnits = await _context.BloodUnits
-                .Where(u =>
-                    u.AllocatedToRequestId == requestId &&
-                    u.UnitStatus == UnitStatus.PartiallyAllocated
+            var reservedUnits = await _context
+                .BloodUnits.Where(u =>
+                    u.AllocatedToRequestId == requestId
+                    && u.UnitStatus == UnitStatus.PartiallyAllocated
                 )
                 .ToListAsync();
 
@@ -1111,8 +1284,8 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
         private IQueryable<BloodRequest> GetBloodRequestBaseQuery()
         {
-            return _context.BloodRequests
-                .Include(r => r.Beneficiary)
+            return _context
+                .BloodRequests.Include(r => r.Beneficiary)
                 .Include(r => r.Hospital)
                 .Include(r => r.Branch)
                 .Include(r => r.BloodUnits)
@@ -1129,13 +1302,13 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 var searchTerm = filter.SearchTerm.Trim();
 
                 query = query.Where(r =>
-                    r.Beneficiary.NationalId.Contains(searchTerm) ||
-                    r.Beneficiary.FullNameAr.Contains(searchTerm) ||
-                    r.Beneficiary.FullNameEn.Contains(searchTerm) ||
-                    r.Hospital.HospitalNameAr.Contains(searchTerm) ||
-                    r.Hospital.HospitalNameEn.Contains(searchTerm) ||
-                    r.Branch.BranchNameAr.Contains(searchTerm) ||
-                    r.Branch.BranchNameEn.Contains(searchTerm)
+                    r.Beneficiary.NationalId.Contains(searchTerm)
+                    || r.Beneficiary.FullNameAr.Contains(searchTerm)
+                    || r.Beneficiary.FullNameEn.Contains(searchTerm)
+                    || r.Hospital.HospitalNameAr.Contains(searchTerm)
+                    || r.Hospital.HospitalNameEn.Contains(searchTerm)
+                    || r.Branch.BranchNameAr.Contains(searchTerm)
+                    || r.Branch.BranchNameEn.Contains(searchTerm)
                 );
             }
 
@@ -1220,7 +1393,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 Items = items,
                 PageNumber = paging.PageNumber,
                 PageSize = paging.PageSize,
-                TotalCount = totalCount
+                TotalCount = totalCount,
             };
         }
 
@@ -1243,10 +1416,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             return currentUserId.Value;
         }
 
-        private async Task ValidateUserHasRoleAsync(
-            ApplicationUser user,
-            UserRole requiredRole
-        )
+        private async Task ValidateUserHasRoleAsync(ApplicationUser user, UserRole requiredRole)
         {
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -1261,12 +1431,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
         private async Task<int> GetOperationalBranchIdForUserAsync(int userId)
         {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u =>
-                    u.Id == userId &&
-                    u.IsActive &&
-                    !u.IsDeleted
-                );
+            var user = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == userId && u.IsActive && !u.IsDeleted
+            );
 
             if (user is null)
             {
@@ -1302,12 +1469,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 return user.BranchId.Value;
             }
 
-            var branch = await _context.Branches
-                .FirstOrDefaultAsync(b =>
-                    b.ManagerUserId == user.Id &&
-                    b.IsActive &&
-                    !b.IsDeleted
-                );
+            var branch = await _context.Branches.FirstOrDefaultAsync(b =>
+                b.ManagerUserId == user.Id && b.IsActive && !b.IsDeleted
+            );
 
             if (branch is null)
             {
@@ -1320,17 +1484,11 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             return branch.Id;
         }
 
-        private async Task EnsureCanAccessRequestAsync(
-            int userId,
-            BloodRequest request
-        )
+        private async Task EnsureCanAccessRequestAsync(int userId, BloodRequest request)
         {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u =>
-                    u.Id == userId &&
-                    u.IsActive &&
-                    !u.IsDeleted
-                );
+            var user = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Id == userId && u.IsActive && !u.IsDeleted
+            );
 
             if (user is null)
             {
@@ -1347,10 +1505,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 return;
             }
 
-            if (
-                request.DoctorId == userId &&
-                roles.Contains(UserRole.Doctor.ToString())
-            )
+            if (request.DoctorId == userId && roles.Contains(UserRole.Doctor.ToString()))
             {
                 return;
             }
@@ -1361,9 +1516,9 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             }
 
             if (
-                roles.Contains(UserRole.Employee.ToString()) &&
-                user.BranchId.HasValue &&
-                request.BranchId == user.BranchId.Value
+                roles.Contains(UserRole.Employee.ToString())
+                && user.BranchId.HasValue
+                && request.BranchId == user.BranchId.Value
             )
             {
                 return;
@@ -1371,13 +1526,12 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
             if (roles.Contains(UserRole.BranchManager.ToString()))
             {
-                var isManagerOfBranch = await _context.Branches
-                    .AnyAsync(b =>
-                        b.Id == request.BranchId &&
-                        b.ManagerUserId == userId &&
-                        b.IsActive &&
-                        !b.IsDeleted
-                    );
+                var isManagerOfBranch = await _context.Branches.AnyAsync(b =>
+                    b.Id == request.BranchId
+                    && b.ManagerUserId == userId
+                    && b.IsActive
+                    && !b.IsDeleted
+                );
 
                 if (isManagerOfBranch)
                 {
@@ -1395,16 +1549,11 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
         // Validation Helpers
         // ============================================================
 
-        private static void ValidateCreateRequest(
-            CreateBloodRequestDto dto
-        )
+        private static void ValidateCreateRequest(CreateBloodRequestDto dto)
         {
             if (dto.HospitalId <= 0)
             {
-                throw new BadRequestException(
-                    "Hospital is required.",
-                    ErrorCodes.HospitalNotFound
-                );
+                throw new BadRequestException("Hospital is required.", ErrorCodes.HospitalNotFound);
             }
 
             if (dto.DoctorId <= 0)
@@ -1416,8 +1565,8 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             }
 
             if (
-                dto.RelationshipType != RelationshipType.Self &&
-                string.IsNullOrWhiteSpace(dto.BeneficiaryNationalId)
+                dto.RelationshipType != RelationshipType.Self
+                && string.IsNullOrWhiteSpace(dto.BeneficiaryNationalId)
             )
             {
                 throw new BadRequestException(
@@ -1449,32 +1598,25 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
             return await MapToDetailsResponseDtoAsync(request);
         }
 
-        private async Task<BloodRequestResponseDto> MapToResponseDtoAsync(
-            BloodRequest request
-        )
+        private async Task<BloodRequestResponseDto> MapToResponseDtoAsync(BloodRequest request)
         {
-            var requester = await _context.Users
-                .AsNoTracking()
+            var requester = await _context
+                .Users.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == request.RequesterUserId);
 
-            var doctor = await _context.Users
-                .AsNoTracking()
+            var doctor = await _context
+                .Users.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == request.DoctorId);
 
-            var unitsReserved = await _context.BloodUnits
-                .CountAsync(u =>
-                    u.AllocatedToRequestId == request.Id &&
-                    u.UnitStatus == UnitStatus.PartiallyAllocated
-                );
+            var unitsReserved = await _context.BloodUnits.CountAsync(u =>
+                u.AllocatedToRequestId == request.Id
+                && u.UnitStatus == UnitStatus.PartiallyAllocated
+            );
 
-            var unitsAllocated = await _context.BloodUnits
-                .CountAsync(u =>
-                    u.AllocatedToRequestId == request.Id &&
-                    (
-                        u.UnitStatus == UnitStatus.Allocated ||
-                        u.UnitStatus == UnitStatus.Used
-                    )
-                );
+            var unitsAllocated = await _context.BloodUnits.CountAsync(u =>
+                u.AllocatedToRequestId == request.Id
+                && (u.UnitStatus == UnitStatus.Allocated || u.UnitStatus == UnitStatus.Used)
+            );
 
             var unitsNeeded = request.UnitsNeeded ?? 0;
 
@@ -1488,6 +1630,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                 BloodTypeDisplayName = request.BloodType.HasValue
                     ? request.BloodType.Value.ToDisplayName()
                     : null,
+                BloodTypeStatus = request.BloodTypeStatus,
 
                 UnitsNeeded = request.UnitsNeeded,
                 UnitsReserved = unitsReserved,
@@ -1521,7 +1664,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
                 DoctorId = request.DoctorId,
                 DoctorFullNameAr = doctor?.FullNameAr ?? string.Empty,
-                DoctorFullNameEn = doctor?.FullNameEn ?? string.Empty
+                DoctorFullNameEn = doctor?.FullNameEn ?? string.Empty,
             };
         }
 
@@ -1531,8 +1674,8 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
         {
             var baseDto = await MapToResponseDtoAsync(request);
 
-            var allocatedUnits = await _context.BloodUnits
-                .AsNoTracking()
+            var allocatedUnits = await _context
+                .BloodUnits.AsNoTracking()
                 .Where(u => u.AllocatedToRequestId == request.Id)
                 .OrderBy(u => u.ExpiresAt)
                 .Select(u => new AllocatedBloodUnitDto
@@ -1544,7 +1687,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
                     UnitStatus = u.UnitStatus,
                     CollectionDate = u.CollectionDate,
                     ExpiresAt = u.ExpiresAt,
-                    AllocatedAt = u.AllocatedAt
+                    AllocatedAt = u.AllocatedAt,
                 })
                 .ToListAsync();
 
@@ -1555,6 +1698,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
                 BloodType = baseDto.BloodType,
                 BloodTypeDisplayName = baseDto.BloodTypeDisplayName,
+                BloodTypeStatus = baseDto.BloodTypeStatus,
 
                 UnitsNeeded = baseDto.UnitsNeeded,
                 UnitsReserved = baseDto.UnitsReserved,
@@ -1602,7 +1746,7 @@ namespace QatratHayat.Application.Features.BloodRequests.Services
 
                 PublishedByUserId = request.PublishedByUserId,
 
-                AllocatedBloodUnits = allocatedUnits
+                AllocatedBloodUnits = allocatedUnits,
             };
         }
     }
