@@ -4,7 +4,7 @@ using QatratHayat.Application.Common.DTOS;
 using QatratHayat.Application.Features.BloodRequests.DTOS;
 using QatratHayat.Application.Features.BloodRequests.Interfaces;
 
-namespace QatratHayat.API.Controllers.BloodRequestsControllers
+namespace QatratHayat.API.Controllers.BloodRequestsController
 {
     [ApiController]
     [Route("api/blood-requests")]

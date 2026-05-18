@@ -20,6 +20,9 @@ namespace QatratHayat.Application.Features.BloodRequests.DTOS
         public int UnitsAllocated { get; set; }
 
         public int UnitsRemaining { get; set; }
+        public int DonationIntentsCount { get; set; }
+
+        public int ActiveDonationIntentsCount { get; set; }
 
         public UrgencyLevel? UrgencyLevel { get; set; }
 
