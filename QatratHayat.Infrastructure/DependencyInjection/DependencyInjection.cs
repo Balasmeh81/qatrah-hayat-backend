@@ -9,6 +9,8 @@ using QatratHayat.Application.Features.BloodRequests.Interfaces;
 using QatratHayat.Application.Features.BloodRequests.Services;
 using QatratHayat.Application.Features.BranchManagement.Interfaces;
 using QatratHayat.Application.Features.BranchManagement.Services;
+using QatratHayat.Application.Features.Campaigns.Interfaces;
+using QatratHayat.Application.Features.Campaigns.Services;
 using QatratHayat.Application.Features.Donations.Interfaces;
 using QatratHayat.Application.Features.HospitalManagement.Interfaces;
 using QatratHayat.Application.Features.HospitalManagement.Services;
@@ -68,6 +70,7 @@ namespace QatratHayat.Infrastructure
             services.AddHostedService<DonationIntentExpirationBackgroundService>();
             services.AddHostedService<BloodUnitExpirationBackgroundService>();
             services.AddScoped<IInventoryService, InventoryService>();
+            services.AddScoped<ICampaignService, CampaignService>();
             return services;
         }
     }

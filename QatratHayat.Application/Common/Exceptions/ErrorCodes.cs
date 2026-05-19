@@ -238,5 +238,19 @@
         public const string BloodUnitAllocationMustBeReleasedFirst =
             "BLOOD_UNIT_ALLOCATION_MUST_BE_RELEASED_FIRST";
         public const string BloodUnitExpired = "BLOOD_UNIT_EXPIRED";
+
+        // Campaigns
+        public const string CampaignNotFound = "CAMPAIGN_NOT_FOUND";
+        public const string CampaignAlreadyExists = "CAMPAIGN_ALREADY_EXISTS";
+        public const string CampaignInvalidDateRange = "CAMPAIGN_INVALID_DATE_RANGE";
+        public const string CampaignBranchRequired = "CAMPAIGN_BRANCH_REQUIRED";
+        public const string CampaignLocationRequired = "CAMPAIGN_LOCATION_REQUIRED";
+        public const string CampaignInvalidStatus = "CAMPAIGN_INVALID_STATUS";
+        public const string CampaignHasLinkedDonationIntents = "CAMPAIGN_HAS_LINKED_DONATION_INTENTS";
+        public const string CampaignHasLinkedDonations = "CAMPAIGN_HAS_LINKED_DONATIONS";
+        public const string DuplicateCampaignTargetBloodTypes = "DUPLICATE_CAMPAIGN_TARGET_BLOOD_TYPES";
+        public const string CampaignTargetBloodTypesRequired = "CAMPAIGN_TARGET_BLOOD_TYPES_REQUIRED";
+        public const string CampaignAccessDenied = "CAMPAIGN_ACCESS_DENIED";
+        public const string BranchManagerBranchRequired = "BRANCH_MANAGER_BRANCH_REQUIRED";
     }
 }
