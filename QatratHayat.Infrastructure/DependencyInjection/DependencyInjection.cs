@@ -12,6 +12,7 @@ using QatratHayat.Application.Features.BranchManagement.Services;
 using QatratHayat.Application.Features.Donations.Interfaces;
 using QatratHayat.Application.Features.HospitalManagement.Interfaces;
 using QatratHayat.Application.Features.HospitalManagement.Services;
+using QatratHayat.Application.Features.Inventory.Interfaces;
 using QatratHayat.Application.Features.ScreeningQuestions.Interfaces;
 using QatratHayat.Application.Features.UsersManagement.Interfaces;
 using QatratHayat.Application.Features.UsersManagement.Services;
@@ -66,6 +67,7 @@ namespace QatratHayat.Infrastructure
             services.AddScoped<IBloodUnitSmartAllocationService, BloodUnitSmartAllocationService>();
             services.AddHostedService<DonationIntentExpirationBackgroundService>();
             services.AddHostedService<BloodUnitExpirationBackgroundService>();
+            services.AddScoped<IInventoryService, InventoryService>();
             return services;
         }
     }

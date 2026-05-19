@@ -221,8 +221,22 @@
 
         public const string DuplicateScreeningAnswerReview = "DUPLICATE_SCREENING_ANSWER_REVIEW";
 
-        public const string ScreeningAnswerDoesNotBelongToIntent = "SCREENING_ANSWER_DOES_NOT_BELONG_TO_INTENT";
+        public const string ScreeningAnswerDoesNotBelongToIntent =
+            "SCREENING_ANSWER_DOES_NOT_BELONG_TO_INTENT";
 
-        public const string ScreeningReviewRequiredBeforeFinalAssessment = "SCREENING_REVIEW_REQUIRED_BEFORE_FINAL_ASSESSMENT";
+        public const string ScreeningReviewRequiredBeforeFinalAssessment =
+            "SCREENING_REVIEW_REQUIRED_BEFORE_FINAL_ASSESSMENT";
+
+        // Inventory
+        public const string BloodUnitNotFound = "BLOOD_UNIT_NOT_FOUND";
+        public const string InvalidBloodUnitStatus = "INVALID_BLOOD_UNIT_STATUS";
+        public const string BloodUnitBranchMismatch = "BLOOD_UNIT_BRANCH_MISMATCH";
+        public const string InventoryActionNotAllowed = "INVENTORY_ACTION_NOT_ALLOWED";
+        public const string BloodUnitDisposalReasonRequired = "BLOOD_UNIT_DISPOSAL_REASON_REQUIRED";
+        public const string BloodUnitDeallocationNoteRequired =
+            "BLOOD_UNIT_DEALLOCATION_NOTE_REQUIRED";
+        public const string BloodUnitAllocationMustBeReleasedFirst =
+            "BLOOD_UNIT_ALLOCATION_MUST_BE_RELEASED_FIRST";
+        public const string BloodUnitExpired = "BLOOD_UNIT_EXPIRED";
     }
 }
