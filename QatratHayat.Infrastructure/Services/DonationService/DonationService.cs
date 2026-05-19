@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using QatratHayat.Application.Common.DTOS;
 using QatratHayat.Application.Common.Exceptions;
 using QatratHayat.Application.Features.Donations.DTOs;
 using QatratHayat.Application.Features.Donations.Interfaces;
@@ -136,8 +137,149 @@ namespace QatratHayat.Infrastructure.Services
             };
         }
 
-        public async Task<List<PublishedBloodRequestForDonationDto>> GetPublishedRequestsAsync(
-            int userId
+        public async Task<
+            PagedResultDto<PublishedBloodRequestForDonationDto>
+        > GetPublishedRequestsAsync(int userId, PublishedBloodRequestsForDonationQueryDto query)
+        {
+            var user = await GetUserWithDonorProfileAsync(userId);
+
+            if (user.DonorProfile is null)
+            {
+                throw new BadRequestException(
+                    "Donor profile was not found.",
+                    ErrorCodes.DonorProfileRequired
+                );
+            }
+
+            var pageNumber = query.PageNumber <= 0 ? 1 : query.PageNumber;
+            var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
+            pageSize = pageSize > 50 ? 50 : pageSize;
+
+            var donorBloodType = user.DonorProfile.BloodType;
+
+            var bloodRequestsQuery =
+                from request in _context.BloodRequests.AsNoTracking()
+                join beneficiary in _context.Beneficiaries.AsNoTracking()
+                    on request.BeneficiaryId equals beneficiary.Id
+                join branch in _context.Branches.AsNoTracking() on request.BranchId equals branch.Id
+                join hospital in _context.Hospitals.AsNoTracking()
+                    on request.HospitalId equals hospital.Id
+                join requester in _context.Users.AsNoTracking()
+                    on request.RequesterUserId equals requester.Id
+                where
+                    request.PublishedAt.HasValue
+                    && request.BloodType.HasValue
+                    && request.UnitsNeeded.HasValue
+                    && (
+                        request.RequestStatus == RequestStatus.Shortage
+                        || request.RequestStatus == RequestStatus.PartiallyAllocated
+                    )
+                select new
+                {
+                    Request = request,
+                    Beneficiary = beneficiary,
+                    Branch = branch,
+                    Hospital = hospital,
+                    Requester = requester,
+                    AllocatedOrUsedCount = _context.BloodUnits.Count(unit =>
+                        unit.AllocatedToRequestId == request.Id
+                        && (
+                            unit.UnitStatus == UnitStatus.PartiallyAllocated
+                            || unit.UnitStatus == UnitStatus.Allocated
+                            || unit.UnitStatus == UnitStatus.Used
+                        )
+                    ),
+                };
+
+            if (query.UrgencyLevel.HasValue)
+            {
+                bloodRequestsQuery = bloodRequestsQuery.Where(x =>
+                    x.Request.UrgencyLevel == query.UrgencyLevel.Value
+                );
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.SearchTerm))
+            {
+                var searchTerm = query.SearchTerm.Trim();
+
+                bloodRequestsQuery = bloodRequestsQuery.Where(x =>
+                    x.Beneficiary.NationalId.Contains(searchTerm)
+                    || x.Beneficiary.FullNameAr.Contains(searchTerm)
+                    || x.Beneficiary.FullNameEn.Contains(searchTerm)
+                );
+            }
+
+            var candidateRequests = await bloodRequestsQuery
+                .Select(x => new
+                {
+                    x.Request,
+                    x.Beneficiary,
+                    x.Branch,
+                    x.Hospital,
+                    x.Requester,
+                    x.AllocatedOrUsedCount,
+                    UnitsRemaining = x.Request.UnitsNeeded!.Value - x.AllocatedOrUsedCount,
+                })
+                .Where(x => x.UnitsRemaining > 0)
+                .OrderByDescending(x => x.Request.UrgencyLevel == UrgencyLevel.Emergency)
+                .ThenBy(x => x.Request.PublishedAt)
+                .ToListAsync();
+
+            var compatibleRequests = candidateRequests
+                .Where(x =>
+                    _bloodTypeCompatibilityService.CanDonateTo(
+                        donorBloodType,
+                        x.Request.BloodType!.Value
+                    )
+                )
+                .ToList();
+
+            var totalCount = compatibleRequests.Count;
+
+            var items = compatibleRequests
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new PublishedBloodRequestForDonationDto
+                {
+                    BloodRequestId = x.Request.Id,
+
+                    PatientNationalId = x.Beneficiary.NationalId,
+                    PatientFullNameAr = x.Beneficiary.FullNameAr,
+                    PatientFullNameEn = x.Beneficiary.FullNameEn,
+
+                    ContactPhoneNumber = x.Requester.PhoneNumber,
+
+                    BloodType = x.Request.BloodType!.Value,
+                    UrgencyLevel = x.Request.UrgencyLevel ?? UrgencyLevel.Normal,
+
+                    BranchId = x.Request.BranchId,
+                    BranchNameAr = x.Branch.BranchNameAr,
+                    BranchNameEn = x.Branch.BranchNameEn,
+
+                    HospitalId = x.Request.HospitalId,
+                    HospitalNameAr = x.Hospital.HospitalNameAr,
+                    HospitalNameEn = x.Hospital.HospitalNameEn,
+
+                    UnitsNeeded = x.Request.UnitsNeeded!.Value,
+                    UnitsAllocatedOrUsed = x.AllocatedOrUsedCount,
+                    UnitsRemaining = x.UnitsRemaining,
+
+                    PublishedAt = x.Request.PublishedAt!.Value,
+                })
+                .ToList();
+
+            return new PagedResultDto<PublishedBloodRequestForDonationDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+            };
+        }
+
+        public async Task<PublishedBloodRequestForDonationDto> GetPublishedRequestByIdAsync(
+            int userId,
+            int bloodRequestId
         )
         {
             var user = await GetUserWithDonorProfileAsync(userId);
@@ -152,66 +294,101 @@ namespace QatratHayat.Infrastructure.Services
 
             var donorBloodType = user.DonorProfile.BloodType;
 
-            var requests = await _context
-                .BloodRequests.AsNoTracking()
-                .Include(x => x.Branch)
-                .Include(x => x.Hospital)
-                .Include(x => x.BloodUnits)
-                .Where(x =>
-                    x.PublishedAt.HasValue
-                    && x.BloodType.HasValue
-                    && x.UnitsNeeded.HasValue
+            var request = await (
+                from bloodRequest in _context.BloodRequests.AsNoTracking()
+                join beneficiary in _context.Beneficiaries.AsNoTracking()
+                    on bloodRequest.BeneficiaryId equals beneficiary.Id
+                join branch in _context.Branches.AsNoTracking()
+                    on bloodRequest.BranchId equals branch.Id
+                join hospital in _context.Hospitals.AsNoTracking()
+                    on bloodRequest.HospitalId equals hospital.Id
+                join requester in _context.Users.AsNoTracking()
+                    on bloodRequest.RequesterUserId equals requester.Id
+                where
+                    bloodRequest.Id == bloodRequestId
+                    && bloodRequest.PublishedAt.HasValue
+                    && bloodRequest.BloodType.HasValue
+                    && bloodRequest.UnitsNeeded.HasValue
                     && (
-                        x.RequestStatus == RequestStatus.Shortage
-                        || x.RequestStatus == RequestStatus.PartiallyAllocated
+                        bloodRequest.RequestStatus == RequestStatus.Shortage
+                        || bloodRequest.RequestStatus == RequestStatus.PartiallyAllocated
                     )
-                )
-                .ToListAsync();
-
-            var result = requests
-                .Select(request =>
+                select new
                 {
-                    var allocatedOrUsedCount = CountAllocatedOrUsedUnits(request);
-                    var unitsRemaining = Math.Max(
-                        request.UnitsNeeded!.Value - allocatedOrUsedCount,
-                        0
-                    );
+                    Request = bloodRequest,
+                    Beneficiary = beneficiary,
+                    Branch = branch,
+                    Hospital = hospital,
+                    Requester = requester,
+                    AllocatedOrUsedCount = _context.BloodUnits.Count(unit =>
+                        unit.AllocatedToRequestId == bloodRequest.Id
+                        && (
+                            unit.UnitStatus == UnitStatus.PartiallyAllocated
+                            || unit.UnitStatus == UnitStatus.Allocated
+                            || unit.UnitStatus == UnitStatus.Used
+                        )
+                    ),
+                }
+            ).FirstOrDefaultAsync();
 
-                    return new
-                    {
-                        Request = request,
-                        AllocatedOrUsedCount = allocatedOrUsedCount,
-                        UnitsRemaining = unitsRemaining,
-                    };
-                })
-                .Where(x =>
-                    x.UnitsRemaining > 0
-                    && _bloodTypeCompatibilityService.CanDonateTo(
-                        donorBloodType,
-                        x.Request.BloodType!.Value
-                    )
+            if (request is null)
+            {
+                throw new NotFoundException(
+                    "Published blood request was not found.",
+                    ErrorCodes.BloodRequestNotFound
+                );
+            }
+
+            var unitsRemaining = request.Request.UnitsNeeded!.Value - request.AllocatedOrUsedCount;
+
+            if (unitsRemaining <= 0)
+            {
+                throw new BadRequestException(
+                    "This blood request does not need more units.",
+                    ErrorCodes.BloodRequestNotAvailableForDonation
+                );
+            }
+
+            if (
+                !_bloodTypeCompatibilityService.CanDonateTo(
+                    donorBloodType,
+                    request.Request.BloodType!.Value
                 )
-                .OrderByDescending(x => x.Request.UrgencyLevel == UrgencyLevel.Emergency)
-                .ThenBy(x => x.Request.PublishedAt)
-                .Select(x => new PublishedBloodRequestForDonationDto
-                {
-                    BloodRequestId = x.Request.Id,
-                    BloodType = x.Request.BloodType!.Value,
-                    UrgencyLevel = x.Request.UrgencyLevel ?? UrgencyLevel.Normal,
-                    BranchId = x.Request.BranchId,
-                    BranchNameAr = x.Request.Branch.BranchNameAr,
-                    BranchNameEn = x.Request.Branch.BranchNameEn,
-                    HospitalId = x.Request.HospitalId,
-                    HospitalNameAr = x.Request.Hospital.HospitalNameAr,
-                    HospitalNameEn = x.Request.Hospital.HospitalNameEn,
-                    UnitsNeeded = x.Request.UnitsNeeded!.Value,
-                    UnitsAllocatedOrUsed = x.AllocatedOrUsedCount,
-                    UnitsRemaining = x.UnitsRemaining,
-                    PublishedAt = x.Request.PublishedAt!.Value,
-                })
-                .ToList();
+            )
+            {
+                throw new BadRequestException(
+                    "Your blood type is not compatible with this request.",
+                    ErrorCodes.BloodTypeNotCompatible
+                );
+            }
 
-            return result;
+            return new PublishedBloodRequestForDonationDto
+            {
+                BloodRequestId = request.Request.Id,
+
+                PatientNationalId = request.Beneficiary.NationalId,
+                PatientFullNameAr = request.Beneficiary.FullNameAr,
+                PatientFullNameEn = request.Beneficiary.FullNameEn,
+
+                ContactPhoneNumber = request.Requester.PhoneNumber,
+
+                BloodType = request.Request.BloodType!.Value,
+                UrgencyLevel = request.Request.UrgencyLevel ?? UrgencyLevel.Normal,
+
+                BranchId = request.Request.BranchId,
+                BranchNameAr = request.Branch.BranchNameAr,
+                BranchNameEn = request.Branch.BranchNameEn,
+
+                HospitalId = request.Request.HospitalId,
+                HospitalNameAr = request.Hospital.HospitalNameAr,
+                HospitalNameEn = request.Hospital.HospitalNameEn,
+
+                UnitsNeeded = request.Request.UnitsNeeded!.Value,
+                UnitsAllocatedOrUsed = request.AllocatedOrUsedCount,
+                UnitsRemaining = unitsRemaining,
+
+                PublishedAt = request.Request.PublishedAt!.Value,
+            };
         }
 
         public async Task<DonationIntentResponseDto> CreateGeneralDonationIntentAsync(
@@ -416,9 +593,9 @@ namespace QatratHayat.Infrastructure.Services
 
         // Employee Methods
         public async Task<List<BranchDonationIntentListItemDto>> GetBranchDonationIntentsAsync(
-      int employeeUserId,
-      BranchDonationIntentQueryDto query
-  )
+            int employeeUserId,
+            BranchDonationIntentQueryDto query
+        )
         {
             var employee = await GetEmployeeWithBranchAsync(employeeUserId);
 
@@ -430,10 +607,8 @@ namespace QatratHayat.Infrastructure.Services
                 from intent in _context.DonationIntents.AsNoTracking()
                 join donorProfile in _context.DonorProfiles.AsNoTracking()
                     on intent.DonorProfileId equals donorProfile.Id
-                join user in _context.Users.AsNoTracking()
-                    on donorProfile.UserId equals user.Id
-                join branch in _context.Branches.AsNoTracking()
-                    on intent.BranchId equals branch.Id
+                join user in _context.Users.AsNoTracking() on donorProfile.UserId equals user.Id
+                join branch in _context.Branches.AsNoTracking() on intent.BranchId equals branch.Id
                 where intent.BranchId == employee.BranchId
                 select new
                 {
@@ -443,7 +618,13 @@ namespace QatratHayat.Infrastructure.Services
                     Branch = branch,
                     HasReviewAnswers = _context.ScreeningSessions.Any(s =>
                         s.DonationIntentId == intent.Id && s.HasReviewAnswers
-                    )
+                    ),
+                    HasUnreviewedRequiredAnswers = _context.ScreeningAnswers.Any(a =>
+                        a.DonationIntentId == intent.Id
+                        && a.Answer
+                        && a.ScreeningQuestion.DecisionMode == ScreeningDecisionMode.ReviewWhenYes
+                        && a.ReviewedAnswer == null
+                    ),
                 };
 
             if (query.Status.HasValue)
@@ -523,12 +704,14 @@ namespace QatratHayat.Infrastructure.Services
                     BloodRequestId = x.Intent.BloodRequestId,
                     CampaignId = x.Intent.CampaignId,
 
-                    HasReviewAnswers = x.HasReviewAnswers
+                    HasReviewAnswers = x.HasReviewAnswers,
+                    HasUnreviewedRequiredAnswers = x.HasUnreviewedRequiredAnswers,
                 })
                 .ToListAsync();
 
             return result;
         }
+
         public async Task<BranchDonationIntentDetailsDto> GetBranchDonationIntentDetailsAsync(
             int employeeUserId,
             int intentId
@@ -540,17 +723,15 @@ namespace QatratHayat.Infrastructure.Services
                 from intent in _context.DonationIntents.AsNoTracking()
                 join donorProfile in _context.DonorProfiles.AsNoTracking()
                     on intent.DonorProfileId equals donorProfile.Id
-                join user in _context.Users.AsNoTracking()
-                    on donorProfile.UserId equals user.Id
-                join branch in _context.Branches.AsNoTracking()
-                    on intent.BranchId equals branch.Id
+                join user in _context.Users.AsNoTracking() on donorProfile.UserId equals user.Id
+                join branch in _context.Branches.AsNoTracking() on intent.BranchId equals branch.Id
                 where intent.Id == intentId && intent.BranchId == employee.BranchId
                 select new
                 {
                     Intent = intent,
                     DonorProfile = donorProfile,
                     User = user,
-                    Branch = branch
+                    Branch = branch,
                 }
             ).FirstOrDefaultAsync();
 
@@ -562,8 +743,8 @@ namespace QatratHayat.Infrastructure.Services
                 );
             }
 
-            var screeningSessions = await _context.ScreeningSessions
-                .AsNoTracking()
+            var screeningSessions = await _context
+                .ScreeningSessions.AsNoTracking()
                 .Where(s => s.DonationIntentId == intentId)
                 .OrderByDescending(s => s.CreatedAt)
                 .Select(s => new ScreeningSessionReviewDto
@@ -574,8 +755,8 @@ namespace QatratHayat.Infrastructure.Services
                     HasReviewAnswers = s.HasReviewAnswers,
                     CreatedAt = s.CreatedAt,
                     CompletedAt = s.CompletedAt,
-                    Answers = s.Answers
-                        .OrderBy(a => a.ScreeningQuestion.DisplayOrder)
+                    Answers = s
+                        .Answers.OrderBy(a => a.ScreeningQuestion.DisplayOrder)
                         .Select(a => new ScreeningAnswerReviewDto
                         {
                             AnswerId = a.Id,
@@ -587,9 +768,19 @@ namespace QatratHayat.Infrastructure.Services
                             AdditionalText = a.AdditionalText,
                             RequiresReview =
                                 a.Answer
-                                && a.ScreeningQuestion.DecisionMode == ScreeningDecisionMode.ReviewWhenYes
+                                && a.ScreeningQuestion.DecisionMode
+                                    == ScreeningDecisionMode.ReviewWhenYes,
+
+                            ReviewedAnswer = a.ReviewedAnswer,
+                            ReviewedConditionalDateValue = a.ReviewedConditionalDateValue,
+                            ReviewedAdditionalText = a.ReviewedAdditionalText,
+                            EmployeeReviewNotes = a.EmployeeReviewNotes,
+                            ReviewedByEmployeeId = a.ReviewedByEmployeeId,
+                            ReviewedByEmployeeNameAr = null,
+                            ReviewedByEmployeeNameEn = null,
+                            ReviewedAt = a.ReviewedAt,
                         })
-                        .ToList()
+                        .ToList(),
                 })
                 .ToListAsync();
 
@@ -625,10 +816,115 @@ namespace QatratHayat.Infrastructure.Services
                 CampaignId = baseData.Intent.CampaignId,
 
                 HasReviewAnswers = screeningSessions.Any(s => s.HasReviewAnswers),
-
-                ScreeningSessions = screeningSessions
+                HasUnreviewedRequiredAnswers = screeningSessions
+                    .SelectMany(s => s.Answers)
+                    .Any(a => a.RequiresReview && a.ReviewedAnswer == null),
+                ScreeningSessions = screeningSessions,
             };
         }
+
+        public async Task<BranchDonationIntentDetailsDto> ReviewBranchIntentScreeningAsync(
+            int employeeUserId,
+            int intentId,
+            ReviewScreeningAnswersRequestDto request
+        )
+        {
+            if (request.Answers.Count == 0)
+            {
+                throw new BadRequestException(
+                    "At least one screening answer review is required.",
+                    ErrorCodes.ScreeningReviewAnswersRequired
+                );
+            }
+
+            var employee = await GetEmployeeWithBranchAsync(employeeUserId);
+
+            var intent = await _context
+                .DonationIntents.Include(i => i.ScreeningSessions)
+                    .ThenInclude(s => s.Answers)
+                        .ThenInclude(a => a.ScreeningQuestion)
+                .FirstOrDefaultAsync(i => i.Id == intentId && i.BranchId == employee.BranchId);
+
+            if (intent is null)
+            {
+                throw new NotFoundException(
+                    "Donation intent was not found in your branch.",
+                    ErrorCodes.DonationIntentNotFound
+                );
+            }
+
+            if (intent.DonationIntentStatus != DonationIntentStatus.Active)
+            {
+                throw new BadRequestException(
+                    "Only active donation intents can be reviewed.",
+                    ErrorCodes.DonationIntentNotActive
+                );
+            }
+
+            if (intent.ExpiresAt <= DateTime.UtcNow)
+            {
+                intent.DonationIntentStatus = DonationIntentStatus.Expired;
+                await _context.SaveChangesAsync();
+
+                throw new BadRequestException(
+                    "Donation intent is expired.",
+                    ErrorCodes.DonationIntentExpired
+                );
+            }
+
+            var duplicateAnswerIds = request
+                .Answers.GroupBy(answer => answer.AnswerId)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key)
+                .ToList();
+
+            if (duplicateAnswerIds.Count > 0)
+            {
+                throw new BadRequestException(
+                    "Duplicate screening answer reviews are not allowed.",
+                    ErrorCodes.DuplicateScreeningAnswerReview
+                );
+            }
+
+            var intentAnswers = intent
+                .ScreeningSessions.SelectMany(session => session.Answers)
+                .ToDictionary(answer => answer.Id);
+
+            foreach (var reviewAnswer in request.Answers)
+            {
+                if (!intentAnswers.TryGetValue(reviewAnswer.AnswerId, out var answer))
+                {
+                    throw new BadRequestException(
+                        "One or more screening answers do not belong to this donation intent.",
+                        ErrorCodes.ScreeningAnswerDoesNotBelongToIntent
+                    );
+                }
+
+                answer.ReviewedAnswer = reviewAnswer.ReviewedAnswer;
+
+                answer.ReviewedConditionalDateValue = reviewAnswer.ReviewedConditionalDateValue;
+
+                answer.ReviewedAdditionalText = string.IsNullOrWhiteSpace(
+                    reviewAnswer.ReviewedAdditionalText
+                )
+                    ? null
+                    : reviewAnswer.ReviewedAdditionalText.Trim();
+
+                answer.EmployeeReviewNotes = string.IsNullOrWhiteSpace(
+                    reviewAnswer.EmployeeReviewNotes
+                )
+                    ? null
+                    : reviewAnswer.EmployeeReviewNotes.Trim();
+
+                answer.ReviewedByEmployeeId = employeeUserId;
+                answer.ReviewedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return await GetBranchDonationIntentDetailsAsync(employeeUserId, intentId);
+        }
+
         public async Task<FinalAssessmentResponseDto> SubmitFinalAssessmentAsync(
             int employeeUserId,
             int intentId,
@@ -637,9 +933,11 @@ namespace QatratHayat.Infrastructure.Services
         {
             var employee = await GetEmployeeWithBranchAsync(employeeUserId);
 
-            var intent = await _context.DonationIntents
-                .Include(x => x.DonorProfile)
+            var intent = await _context
+                .DonationIntents.Include(x => x.DonorProfile)
                 .Include(x => x.ScreeningSessions)
+                    .ThenInclude(s => s.Answers)
+                        .ThenInclude(a => a.ScreeningQuestion)
                 .FirstOrDefaultAsync(x => x.Id == intentId && x.BranchId == employee.BranchId);
 
             if (intent is null)
@@ -666,6 +964,21 @@ namespace QatratHayat.Infrastructure.Services
                 throw new BadRequestException(
                     "Donation intent is expired.",
                     ErrorCodes.DonationIntentExpired
+                );
+            }
+            var hasUnreviewedRequiredAnswers = intent
+                .ScreeningSessions.SelectMany(session => session.Answers)
+                .Any(answer =>
+                    answer.Answer
+                    && answer.ScreeningQuestion.DecisionMode == ScreeningDecisionMode.ReviewWhenYes
+                    && answer.ReviewedAnswer == null
+                );
+
+            if (hasUnreviewedRequiredAnswers)
+            {
+                throw new BadRequestException(
+                    "All screening answers that require review must be reviewed before submitting the final assessment.",
+                    ErrorCodes.ScreeningReviewRequiredBeforeFinalAssessment
                 );
             }
 
@@ -704,7 +1017,7 @@ namespace QatratHayat.Infrastructure.Services
                     DonationIntentId = intent.Id,
                     DonationIntentStatus = intent.DonationIntentStatus,
                     FinalEligibilityStatus = request.FinalEligibilityStatus,
-                    Message = "Donation intent cancelled due to temporary deferral."
+                    Message = "Donation intent cancelled due to temporary deferral.",
                 };
             }
 
@@ -733,7 +1046,7 @@ namespace QatratHayat.Infrastructure.Services
                     DonationIntentId = intent.Id,
                     DonationIntentStatus = intent.DonationIntentStatus,
                     FinalEligibilityStatus = request.FinalEligibilityStatus,
-                    Message = "Donation intent cancelled due to permanent deferral."
+                    Message = "Donation intent cancelled due to permanent deferral.",
                 };
             }
 
@@ -748,7 +1061,7 @@ namespace QatratHayat.Infrastructure.Services
                     DonationIntentId = intent.Id,
                     DonationIntentStatus = intent.DonationIntentStatus,
                     FinalEligibilityStatus = request.FinalEligibilityStatus,
-                    Message = "Donation intent rejected and cancelled."
+                    Message = "Donation intent rejected and cancelled.",
                 };
             }
 
@@ -757,6 +1070,7 @@ namespace QatratHayat.Infrastructure.Services
                 ErrorCodes.UnsupportedFinalEligibilityStatus
             );
         }
+
         //Helper
         private async Task<ApplicationUser> GetUserWithDonorProfileAsync(int userId)
         {
@@ -1155,10 +1469,10 @@ namespace QatratHayat.Infrastructure.Services
         }
 
         private async Task<FinalAssessmentResponseDto> ApproveDonationIntentAsync(
-    int employeeUserId,
-    DonationIntent intent,
-    FinalAssessmentRequestDto request
-)
+            int employeeUserId,
+            DonationIntent intent,
+            FinalAssessmentRequestDto request
+        )
         {
             if (
                 intent.DonorProfile.BloodTypeStatus != BloodTypeStatus.Confirmed
@@ -1206,7 +1520,7 @@ namespace QatratHayat.Infrastructure.Services
                 EmployeeUserId = employeeUserId,
                 BranchId = intent.BranchId,
                 BloodRequestId = intent.BloodRequestId,
-                CampaignId = intent.CampaignId
+                CampaignId = intent.CampaignId,
             };
 
             _context.Donations.Add(donation);
@@ -1231,7 +1545,7 @@ namespace QatratHayat.Infrastructure.Services
                 AllocatedToRequestId = null,
                 BranchId = intent.BranchId,
                 DonationId = donation.Id,
-                DisposedByEmployeeId = null
+                DisposedByEmployeeId = null,
             };
 
             _context.BloodUnits.Add(bloodUnit);
@@ -1258,7 +1572,7 @@ namespace QatratHayat.Infrastructure.Services
                 FinalEligibilityStatus = FinalEligibilityStatus.Approved,
                 DonationId = donation.Id,
                 BloodUnitId = bloodUnit.Id,
-                Message = "Donation approved successfully. Donation and blood unit were created."
+                Message = "Donation approved successfully. Donation and blood unit were created.",
             };
         }
     }

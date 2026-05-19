@@ -10,8 +10,8 @@
         public const string Conflict = "CONFLICT";
         public const string InternalServerError = "INTERNAL_SERVER_ERROR";
         public const string CurrentUserNotFound = "CURRENT_USER_NOT_FOUND";
-        public const string UserNotAllowedToConfirmBloodType = "USER_NOT_ALLOWED_TO_CONFIRM_BLOOD_TYPE";
-
+        public const string UserNotAllowedToConfirmBloodType =
+            "USER_NOT_ALLOWED_TO_CONFIRM_BLOOD_TYPE";
 
         // Auth
         //Login
@@ -19,7 +19,6 @@
         public const string AuthAccountInactive = "AUTH_ACCOUNT_INACTIVE";
         public const string AuthMissingUserIdClaim = "AUTH_MISSING_USER_ID_CLAIM";
         public const string AuthInvalidUserIdClaim = "AUTH_INVALID_USER_ID_CLAIM";
-
 
         //Registration
         public const string RegistrationFailed = "REGISTRATION_FAILED";
@@ -96,8 +95,10 @@
 
         public const string BranchNotAllowedForDoctor = "BRANCH_NOT_ALLOWED_FOR_DOCTOR";
         public const string HospitalNotAllowedForEmployee = "HOSPITAL_NOT_ALLOWED_FOR_EMPLOYEE";
-        public const string BranchManagerAssignmentMustBeManagedFromBranchManagement = "BRANCH_MANAGER_ASSIGNMENT_MUST_BE_MANAGED_FROM_BRANCH_MANAGEMENT";
-        public const string HospitalNotAllowedForBranchManager = "HOSPITAL_NOT_ALLOWED_FOR_BRANCH_MANAGER";
+        public const string BranchManagerAssignmentMustBeManagedFromBranchManagement =
+            "BRANCH_MANAGER_ASSIGNMENT_MUST_BE_MANAGED_FROM_BRANCH_MANAGEMENT";
+        public const string HospitalNotAllowedForBranchManager =
+            "HOSPITAL_NOT_ALLOWED_FOR_BRANCH_MANAGER";
         public const string LocationNotAllowedForAdmin = "LOCATION_NOT_ALLOWED_FOR_ADMIN";
 
         //--------------------------------------------------------------
@@ -122,7 +123,6 @@
         public const string AdditionalTextNotAllowed = "ADDITIONAL_TEXT_NOT_ALLOWED";
         public const string RegistrationScreeningRequired = "REGISTRATION_SCREENING_REQUIRED";
 
-
         //--------------------------------------------------------------
 
         // Branch Management
@@ -140,6 +140,7 @@
         public const string InvalidBranchWorkingHours = "INVALID_BRANCH_WORKING_HOURS";
         public const string DuplicateBranchWorkingDay = "DUPLICATE_BRANCH_WORKING_DAY";
         public const string InvalidBranchWorkingTime = "INVALID_BRANCH_WORKING_TIME";
+
         //--------------------------------------------------------------
 
         // Hospital Management
@@ -172,7 +173,8 @@
 
         public const string UnitsNeededInvalid = "UNITS_NEEDED_INVALID";
         public const string NoAvailableBloodUnits = "NO_AVAILABLE_BLOOD_UNITS";
-        public const string BeneficiaryNotFoundInNationalRegistry = "BENEFICIARY_NOT_FOUND_IN_NATIONAL_REGISTRY";
+        public const string BeneficiaryNotFoundInNationalRegistry =
+            "BENEFICIARY_NOT_FOUND_IN_NATIONAL_REGISTRY";
 
         public const string BloodTypeRequired = "BLOOD_TYPE_REQUIRED";
         public const string UrgencyLevelRequired = "URGENCY_LEVEL_REQUIRED";
@@ -180,18 +182,20 @@
         public const string NoReservedUnitsFound = "NO_RESERVED_UNITS_FOUND";
 
         // Donation Intent
-        public const string ActiveDonationIntentAlreadyExists = "ACTIVE_DONATION_INTENT_ALREADY_EXISTS";
+        public const string ActiveDonationIntentAlreadyExists =
+            "ACTIVE_DONATION_INTENT_ALREADY_EXISTS";
         public const string DonorAgeNotAllowed = "DONOR_AGE_NOT_ALLOWED";
         public const string DonorTemporarilyDeferred = "DONOR_TEMPORARILY_DEFERRED";
         public const string DonorPermanentlyDeferred = "DONOR_PERMANENTLY_DEFERRED";
         public const string DonationIntervalNotPassed = "DONATION_INTERVAL_NOT_PASSED";
 
-
         public const string BloodRequestNotPublished = "BLOOD_REQUEST_NOT_PUBLISHED";
-        public const string BloodRequestNotAvailableForDonation = "BLOOD_REQUEST_NOT_AVAILABLE_FOR_DONATION";
+        public const string BloodRequestNotAvailableForDonation =
+            "BLOOD_REQUEST_NOT_AVAILABLE_FOR_DONATION";
         public const string BloodRequestBloodTypeMissing = "BLOOD_REQUEST_BLOOD_TYPE_MISSING";
         public const string BloodRequestUnitsMissing = "BLOOD_REQUEST_UNITS_MISSING";
-        public const string BloodRequestDoesNotNeedMoreUnits = "BLOOD_REQUEST_DOES_NOT_NEED_MORE_UNITS";
+        public const string BloodRequestDoesNotNeedMoreUnits =
+            "BLOOD_REQUEST_DOES_NOT_NEED_MORE_UNITS";
 
         public const string BloodTypeNotCompatible = "BLOOD_TYPE_NOT_COMPATIBLE";
 
@@ -205,11 +209,34 @@
         public const string EmployeeBranchRequired = "EMPLOYEE_BRANCH_REQUIRED";
         public const string DonationIntentExpired = "DONATION_INTENT_EXPIRED";
         public const string ConfirmedBloodTypeRequired = "CONFIRMED_BLOOD_TYPE_REQUIRED";
-        public const string TemporaryDeferralEndDateRequired = "TEMPORARY_DEFERRAL_END_DATE_REQUIRED";
+        public const string TemporaryDeferralEndDateRequired =
+            "TEMPORARY_DEFERRAL_END_DATE_REQUIRED";
         public const string TemporaryDeferralEndDateInvalid = "TEMPORARY_DEFERRAL_END_DATE_INVALID";
         public const string FinalDecisionReasonRequired = "FINAL_DECISION_REASON_REQUIRED";
-        public const string UnsupportedFinalEligibilityStatus = "UNSUPPORTED_FINAL_ELIGIBILITY_STATUS";
+        public const string UnsupportedFinalEligibilityStatus =
+            "UNSUPPORTED_FINAL_ELIGIBILITY_STATUS";
 
         public const string DonorBloodTypeMustBeConfirmed = "DONOR_BLOOD_TYPE_MUST_BE_CONFIRMED";
+        public const string ScreeningReviewAnswersRequired = "SCREENING_REVIEW_ANSWERS_REQUIRED";
+
+        public const string DuplicateScreeningAnswerReview = "DUPLICATE_SCREENING_ANSWER_REVIEW";
+
+        public const string ScreeningAnswerDoesNotBelongToIntent =
+            "SCREENING_ANSWER_DOES_NOT_BELONG_TO_INTENT";
+
+        public const string ScreeningReviewRequiredBeforeFinalAssessment =
+            "SCREENING_REVIEW_REQUIRED_BEFORE_FINAL_ASSESSMENT";
+
+        // Inventory
+        public const string BloodUnitNotFound = "BLOOD_UNIT_NOT_FOUND";
+        public const string InvalidBloodUnitStatus = "INVALID_BLOOD_UNIT_STATUS";
+        public const string BloodUnitBranchMismatch = "BLOOD_UNIT_BRANCH_MISMATCH";
+        public const string InventoryActionNotAllowed = "INVENTORY_ACTION_NOT_ALLOWED";
+        public const string BloodUnitDisposalReasonRequired = "BLOOD_UNIT_DISPOSAL_REASON_REQUIRED";
+        public const string BloodUnitDeallocationNoteRequired =
+            "BLOOD_UNIT_DEALLOCATION_NOTE_REQUIRED";
+        public const string BloodUnitAllocationMustBeReleasedFirst =
+            "BLOOD_UNIT_ALLOCATION_MUST_BE_RELEASED_FIRST";
+        public const string BloodUnitExpired = "BLOOD_UNIT_EXPIRED";
     }
 }

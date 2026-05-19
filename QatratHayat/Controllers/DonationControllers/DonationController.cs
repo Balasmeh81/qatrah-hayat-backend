@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QatratHayat.Application.Common.DTOS;
 using QatratHayat.Application.Features.Donations.DTOs;
 using QatratHayat.Application.Features.Donations.Interfaces;
 using System.Security.Claims;
@@ -29,11 +30,25 @@ namespace QatratHayat.API.Controllers.DonationControllers
         }
 
         [HttpGet("published-requests")]
-        public async Task<ActionResult<List<PublishedBloodRequestForDonationDto>>> GetPublishedRequests()
+        public async Task<
+            ActionResult<PagedResultDto<PublishedBloodRequestForDonationDto>>
+        > GetPublishedRequests([FromQuery] PublishedBloodRequestsForDonationQueryDto query)
         {
             var userId = GetCurrentUserId();
 
-            var result = await _donationService.GetPublishedRequestsAsync(userId);
+            var result = await _donationService.GetPublishedRequestsAsync(userId, query);
+
+            return Ok(result);
+        }
+
+        [HttpGet("published-requests/{id:int}")]
+        public async Task<
+            ActionResult<PublishedBloodRequestForDonationDto>
+        > GetPublishedRequestById(int id)
+        {
+            var userId = GetCurrentUserId();
+
+            var result = await _donationService.GetPublishedRequestByIdAsync(userId, id);
 
             return Ok(result);
         }

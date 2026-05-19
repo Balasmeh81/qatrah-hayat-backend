@@ -1,13 +1,21 @@
-﻿using QatratHayat.Application.Features.Donations.DTOs;
+﻿using QatratHayat.Application.Common.DTOS;
+using QatratHayat.Application.Features.Donations.DTOs;
 
 namespace QatratHayat.Application.Features.Donations.Interfaces
 {
     public interface IDonationService
     {
-        //Citizen
+        // Citizen
         Task<DonationEligibilityResponseDto> GetDonationEligibilityAsync(int userId);
 
-        Task<List<PublishedBloodRequestForDonationDto>> GetPublishedRequestsAsync(int userId);
+        Task<PagedResultDto<PublishedBloodRequestForDonationDto>> GetPublishedRequestsAsync(
+            int userId,
+            PublishedBloodRequestsForDonationQueryDto query
+        );
+        Task<PublishedBloodRequestForDonationDto> GetPublishedRequestByIdAsync(
+            int userId,
+            int bloodRequestId
+        );
 
         Task<DonationIntentResponseDto> CreateGeneralDonationIntentAsync(
             int userId,
@@ -25,12 +33,17 @@ namespace QatratHayat.Application.Features.Donations.Interfaces
 
         Task<DonationIntentResponseDto> CancelMyDonationIntentAsync(int userId, int intentId);
 
-        //Employee
+        // Employee
         Task<List<BranchDonationIntentListItemDto>> GetBranchDonationIntentsAsync(
             int employeeUserId,
             BranchDonationIntentQueryDto query
         );
 
+        Task<BranchDonationIntentDetailsDto> ReviewBranchIntentScreeningAsync(
+            int employeeUserId,
+            int intentId,
+            ReviewScreeningAnswersRequestDto request
+        );
         Task<BranchDonationIntentDetailsDto> GetBranchDonationIntentDetailsAsync(
             int employeeUserId,
             int intentId

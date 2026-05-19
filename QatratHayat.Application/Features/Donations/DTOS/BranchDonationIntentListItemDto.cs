@@ -8,7 +8,7 @@ namespace QatratHayat.Application.Features.Donations.DTOs
 
         public DonationType DonationType { get; set; }
         public DonationIntentStatus DonationIntentStatus { get; set; }
-
+        public bool HasUnreviewedRequiredAnswers { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime ExpiresAt { get; set; }
 
