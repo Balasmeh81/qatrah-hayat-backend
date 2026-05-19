@@ -15,8 +15,24 @@ namespace QatratHayat.Domain.Entities
         public DateTime? ConditionalDateValue { get; set; }
         [MaxLength(1000)]
         public string? AdditionalText { get; set; }
+        public bool? ReviewedAnswer { get; set; }
+
+        public DateTime? ReviewedConditionalDateValue { get; set; }
+
+        [MaxLength(1000)]
+        public string? ReviewedAdditionalText { get; set; }
+
+        [MaxLength(1000)]
+        public string? EmployeeReviewNotes { get; set; }
+
+
+
+
+        public DateTime? ReviewedAt { get; set; }
+
 
         // Navigation Property
+        public int? ReviewedByEmployeeId { get; set; }
         [Required]
         public int UserId { get; set; }
 

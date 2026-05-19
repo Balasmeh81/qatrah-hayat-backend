@@ -48,10 +48,27 @@ namespace QatratHayat.API.Controllers.DonationControllers
             return Ok(result);
         }
 
+        [HttpPut("branch-intents/{id:int}/screening-review")]
+        public async Task<ActionResult<BranchDonationIntentDetailsDto>> ReviewBranchIntentScreening(
+            int id,
+            [FromBody] ReviewScreeningAnswersRequestDto request
+        )
+        {
+            var employeeUserId = GetCurrentUserId();
+
+            var result = await _donationService.ReviewBranchIntentScreeningAsync(
+                employeeUserId,
+                id,
+                request
+            );
+
+            return Ok(result);
+        }
+
         [HttpPost("branch-intents/{id:int}/final-assessment")]
         public async Task<ActionResult<FinalAssessmentResponseDto>> SubmitFinalAssessment(
             int id,
-            FinalAssessmentRequestDto request
+            [FromBody] FinalAssessmentRequestDto request
         )
         {
             var employeeUserId = GetCurrentUserId();

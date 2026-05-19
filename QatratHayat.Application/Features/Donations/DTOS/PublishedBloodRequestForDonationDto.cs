@@ -6,6 +6,12 @@ namespace QatratHayat.Application.Features.Donations.DTOs
     {
         public int BloodRequestId { get; set; }
 
+        public string PatientNationalId { get; set; } = null!;
+        public string PatientFullNameAr { get; set; } = null!;
+        public string PatientFullNameEn { get; set; } = null!;
+
+        public string? ContactPhoneNumber { get; set; }
+
         public BloodType BloodType { get; set; }
         public UrgencyLevel UrgencyLevel { get; set; }
 
